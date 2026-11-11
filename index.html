@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Tetris Duel — Online 1v1 / 2v2 / 3v3 / 5v5</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  :root{
+    --bg:#0b0e14;
+    --panel:#131826;
+    --panel2:#1a2136;
+    --line:#2a3350;
+    --accent:#5eead4;
+    --accent2:#f472b6;
+    --text:#e6e9f0;
+    --muted:#8892b0;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:radial-gradient(circle at 50% -10%, #1a2036 0%, #0b0e14 60%);
+    color:var(--text);
+    font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:24px 12px 60px;
+  }
+  h1{
+    font-size:28px;
+    letter-spacing:2px;
+    margin:0 0 4px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+  .subtitle{color:var(--muted); margin-bottom:20px; font-size:13px; text-align:center;}
+
+  /* Lobby */
+  #lobby{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:28px;
+    width:100%;
+    max-width:440px;
+    box-shadow:0 10px 40px rgba(0,0,0,.4);
+  }
+  #lobby label{display:block; font-size:12px; color:var(--muted); margin:14px 0 6px;}
+  #lobby input{
+    width:100%;
+    padding:10px 12px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:var(--panel2);
+    color:var(--text);
+    font-size:15px;
+  }
+  #lobby input:focus{outline:1px solid var(--accent);}
+  .row{display:flex; gap:10px;}
+  .row > *{flex:1;}
+  button{
+    cursor:pointer;
+    border:none;
+    border-radius:8px;
+    padding:11px 16px;
+    font-size:14px;
+    font-weight:600;
+    transition:transform .1s ease, filter .15s ease;
+  }
+  button:disabled{opacity:.4; cursor:not-allowed;}
+  button:active:not(:disabled){transform:scale(.97);}
+  .btn-primary{background:linear-gradient(90deg,var(--accent),#22d3ee); color:#032; }
+  .btn-secondary{background:var(--panel2); color:var(--text); border:1px solid var(--line);}
+  .btn-primary:hover:not(:disabled), .btn-secondary:hover:not(:disabled){filter:brightness(1.1);}
+  #lobbyStatus{margin-top:14px; font-size:13px; color:var(--accent); min-height:18px;}
+  .divider{
+    display:flex; align-items:center; gap:10px; margin:22px 0 10px; color:var(--muted); font-size:12px;
+  }
+  .divider::before, .divider::after{content:""; flex:1; height:1px; background:var(--line);}
+
+  .modeRow{display:flex; gap:8px; margin-bottom:14px;}
+  .modeBtn{
+    flex:1; background:var(--panel2); color:var(--muted); border:1px solid var(--line);
+    padding:9px 4px; font-size:13px; font-weight:700; border-radius:8px;
+  }
+  .modeBtn.active{background:linear-gradient(90deg,var(--accent),#22d3ee); color:#032; border-color:transparent;}
+
+  .teamPickBtn{font-size:13px;}
+
+  /* Waiting room */
+  #waitingRoom{ display:none; width:100%; max-width:560px; }
+  .rosterGrid{display:flex; gap:16px; margin-top:6px;}
+  .rosterCol{flex:1; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px;}
+  .rosterCol h3{margin:0 0 10px; font-size:13px; letter-spacing:1px; text-align:center;}
+  .rosterCol.teamA h3{color:var(--accent);}
+  .rosterCol.teamB h3{color:var(--accent2);}
+  .rosterSlot{
+    padding:8px 10px; border-radius:6px; font-size:13px; margin-bottom:6px;
+    background:var(--panel2); border:1px dashed var(--line); color:var(--muted); text-align:center;
+  }
+  .rosterSlot.filled{border-style:solid; color:var(--text); border-color:var(--line);}
+  #copyCodeBtn{padding:4px 10px; font-size:11px; margin-left:8px;}
+
+  /* Game */
+  #game{ display:none; width:100%; max-width:1000px; }
+  .roomInfo{
+    display:flex; justify-content:space-between; align-items:center;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:10px 16px; margin-bottom:16px; font-size:13px; color:var(--muted);
+  }
+  .roomInfo b{color:var(--accent);}
+  .boards{
+    display:flex;
+    gap:20px;
+    justify-content:center;
+    flex-wrap:wrap;
+    align-items:flex-start;
+  }
+  .boardPanel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:16px;
+    text-align:center;
+    width:280px;
+  }
+  .boardPanel h3, .boardPanel h4{margin:0 0 10px; font-size:14px; letter-spacing:1px; color:var(--muted); font-weight:600;}
+  .boardPanel.me{box-shadow:0 0 0 2px var(--accent) inset;}
+  .boardPanel.me h3{color:var(--accent);}
+  canvas{
+    background:#05070c;
+    border-radius:8px;
+    border:1px solid var(--line);
+    display:block;
+    margin:0 auto;
+  }
+  .stats{
+    display:flex; justify-content:space-around; margin-top:10px; font-size:12px; color:var(--muted);
+  }
+  .stats b{display:block; font-size:16px; color:var(--text);}
+
+  .othersGrid{display:flex; flex-wrap:wrap; gap:14px; max-width:640px; justify-content:center; align-items:flex-start;}
+  .boardPanel.mini{width:150px; padding:10px;}
+  .boardPanel.mini h4{font-size:11px; margin-bottom:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .boardPanel.teamA{border-color:var(--accent);}
+  .boardPanel.teamB{border-color:var(--accent2);}
+  .boardPanel.mini.ally h4{color:var(--accent);}
+  .boardPanel.mini.enemy h4{color:var(--accent2);}
+  .tag{font-size:9px; font-weight:700; opacity:.7; text-transform:uppercase;}
+  .ministats{display:flex; justify-content:space-between; margin-top:8px; font-size:11px; color:var(--muted);}
+  .ministats b{color:var(--text);}
+  .ststat{font-weight:700;}
+
+  #teamScoreboard{
+    text-align:center; margin:16px 0 4px; font-size:13px; color:var(--muted); letter-spacing:.5px;
+  }
+  .teamTagA{color:var(--accent); font-weight:800;}
+  .teamTagB{color:var(--accent2); font-weight:800;}
+
+  .msgOverlay{
+    margin-top:10px; font-size:14px; min-height:18px; font-weight:600; text-align:center;
+  }
+  .win{color:#4ade80;}
+  .lose{color:#f87171;}
+  .wait{color:var(--muted);}
+  #controls{
+    margin-top:24px; text-align:center; color:var(--muted); font-size:12px; line-height:1.8;
+  }
+  #controls kbd{
+    background:var(--panel2); border:1px solid var(--line); border-radius:4px; padding:2px 7px; color:var(--text);
+  }
+  #countdown{
+    font-size:64px; font-weight:800; color:var(--accent); text-align:center; margin:20px 0;
+  }
+  .hidden{display:none !important;}
+  .rematchWrap{text-align:center;}
+  .rematchBtn{margin-top:12px;}
+  #configWarning{
+    background:#3a1f1f; border:1px solid #7a3232; color:#ffb4b4; padding:14px 18px;
+    border-radius:10px; max-width:600px; font-size:13px; margin-bottom:18px; line-height:1.6;
+  }
+  #configWarning code{background:#000;padding:2px 6px;border-radius:4px;}
+</style>
+</head>
+<body>
+
+<h1>TETRIS DUEL</h1>
+<div class="subtitle">Online 1v1 / 2v2 / 3v3 / 5v5 Tetris — powered by Firebase Realtime Database</div>
+
+<div id="configWarning" class="hidden">
+  ⚠️ Firebase isn't configured yet. Open this file and fill in the <code>firebaseConfig</code> object
+  near the top of the &lt;script&gt; section with your own project's credentials, then reload the page.
+</div>
+
+<!-- LOBBY -->
+<div id="lobby">
+  <label>Your name</label>
+  <input id="nameInput" placeholder="Player" maxlength="16">
+
+  <div class="divider">create a match</div>
+  <div class="modeRow" id="modeRow">
+    <button class="modeBtn active" data-mode="1v1">1v1</button>
+    <button class="modeBtn" data-mode="2v2">2v2</button>
+    <button class="modeBtn" data-mode="3v3">3v3</button>
+    <button class="modeBtn" data-mode="5v5">5v5</button>
+  </div>
+  <button class="btn-primary" id="createBtn" style="width:100%;">Create Room</button>
+
+  <div class="divider">or join one</div>
+  <div class="row">
+    <input id="joinInput" placeholder="ROOM CODE" maxlength="5" style="text-transform:uppercase;">
+    <button class="btn-secondary" id="joinBtn">Join</button>
+  </div>
+
+  <div id="teamChoice" class="hidden"></div>
+  <div id="lobbyStatus"></div>
+</div>
+
+<!-- WAITING ROOM -->
+<div id="waitingRoom">
+  <div class="roomInfo">
+    <span>Room: <b id="wRoomCode">-----</b><button class="btn-secondary" id="copyCodeBtn">Copy</button></span>
+    <span id="wMode"></span>
+    <button class="btn-secondary" id="wLeaveBtn">Leave</button>
+  </div>
+  <div class="rosterGrid">
+    <div class="rosterCol teamA">
+      <h3>TEAM A</h3>
+      <div id="rosterA"></div>
+    </div>
+    <div class="rosterCol teamB">
+      <h3>TEAM B</h3>
+      <div id="rosterB"></div>
+    </div>
+  </div>
+  <div style="text-align:center;margin-top:20px;">
+    <button class="btn-primary hidden" id="startMatchBtn">Start Match</button>
+    <div id="waitStatus" style="color:var(--muted);font-size:13px;margin-top:10px;"></div>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="game">
+  <div class="roomInfo">
+    <span>Room: <b id="roomCodeLabel">-----</b></span>
+    <span id="modeLabel"></span>
+    <button class="btn-secondary" id="leaveBtn">Leave</button>
+  </div>
+
+  <div id="countdown" class="hidden"></div>
+  <div id="teamScoreboard"></div>
+
+  <div class="boards">
+    <div class="boardPanel me" id="myPanel">
+      <h3 id="meName">YOU</h3>
+      <canvas id="myCanvas" width="200" height="400"></canvas>
+      <div class="stats">
+        <div>Score<b id="myScore">0</b></div>
+        <div>Lines<b id="myLines">0</b></div>
+        <div>Next<b id="myNext">-</b></div>
+      </div>
+    </div>
+    <div id="othersGrid" class="othersGrid"></div>
+  </div>
+
+  <div class="msgOverlay" id="msgOverlay"></div>
+  <div class="rematchWrap">
+    <button class="btn-primary rematchBtn hidden" id="rematchBtn">Play Again</button>
+  </div>
+
+  <div id="controls">
+    <kbd>&larr;</kbd> <kbd>&rarr;</kbd> move &nbsp; | &nbsp; <kbd>&darr;</kbd> soft drop &nbsp; | &nbsp;
+    <kbd>&uarr;</kbd> rotate &nbsp; | &nbsp; <kbd>space</kbd> hard drop<br>
+    Clearing 2+ lines sends garbage rows to a random opponent. Your team loses once every teammate tops out!
+  </div>
+</div>
+
+<!-- Firebase compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<script>
+/* ======================================================================
+   1) PUT YOUR FIREBASE CONFIG HERE
+   Get this from: Firebase console > Project settings > General > Your apps
+   Make sure "Realtime Database" is enabled (not just Firestore), and that
+   its rules allow read/write for this game (test mode is fine to start):
+      {
+        "rules": { ".read": true, ".write": true }
+      }
+   ====================================================================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyCKFAwHTuPLP_eEmQy2ttFx7EzqVJkaA0k",
+  authDomain: "alaw-tetris.firebaseapp.com",
+  databaseURL: "https://alaw-tetris-default-rtdb.firebaseio.com",
+  projectId: "alaw-tetris",
+  storageBucket: "alaw-tetris.firebasestorage.app",
+  messagingSenderId: "563387290486",
+  appId: "1:563387290486:web:3be69f9de03c55a778a057"
+};
+/* ====================================================================== */
+
+let db = null;
+let firebaseReady = false;
+try {
+  if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    firebaseReady = true;
+  }
+} catch (e) {
+  console.error("Firebase init failed:", e);
+}
+if (!firebaseReady) {
+  document.getElementById('configWarning').classList.remove('hidden');
+}
+
+/* ---------------------------- Tetris core ---------------------------- */
+
+const COLS = 10, ROWS = 20, CELL = 20;
+
+const PIECES = {
+  I: { color:'#5eead4', m:[[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]] },
+  O: { color:'#facc15', m:[[1,1],[1,1]] },
+  T: { color:'#c084fc', m:[[0,1,0],[1,1,1],[0,0,0]] },
+  S: { color:'#4ade80', m:[[0,1,1],[1,1,0],[0,0,0]] },
+  Z: { color:'#f87171', m:[[1,1,0],[0,1,1],[0,0,0]] },
+  J: { color:'#60a5fa', m:[[1,0,0],[1,1,1],[0,0,0]] },
+  L: { color:'#fb923c', m:[[0,0,1],[1,1,1],[0,0,0]] },
+};
+const PIECE_KEYS = Object.keys(PIECES);
+
+function rotateMatrix(m){
+  const n = m.length;
+  const res = Array.from({length:n},()=>Array(n).fill(0));
+  for(let y=0;y<n;y++){
+    for(let x=0;x<n;x++){
+      res[x][n-1-y] = m[y][x];
+    }
+  }
+  return res;
+}
+
+function emptyBoard(){
+  return Array.from({length:ROWS},()=>Array(COLS).fill(0));
+}
+
+function randomPiece(){
+  const key = PIECE_KEYS[Math.floor(Math.random()*PIECE_KEYS.length)];
+  return { type:key, m: PIECES[key].m.map(r=>r.slice()), color: PIECES[key].color };
+}
+
+class Game {
+  constructor(){
+    this.board = emptyBoard();
+    this.score = 0;
+    this.lines = 0;
+    this.gameOver = false;
+    this.pendingGarbage = 0;
+    this.cur = randomPiece();
+    this.next = randomPiece();
+    this.x = 3; this.y = 0;
+    this.spawn();
+    this.dropInterval = 800;
+    this.lastDrop = 0;
+  }
+
+  spawn(){
+    this.cur = this.next;
+    this.next = randomPiece();
+    this.x = Math.floor((COLS - this.cur.m[0].length)/2);
+    this.y = 0;
+    if (this.pendingGarbage > 0){
+      this.applyGarbage(this.pendingGarbage);
+      this.pendingGarbage = 0;
+    }
+    if (this.collides(this.cur.m, this.x, this.y)){
+      this.gameOver = true;
+    }
+  }
+
+  collides(m, ox, oy){
+    for(let y=0;y<m.length;y++){
+      for(let x=0;x<m[y].length;x++){
+        if(!m[y][x]) continue;
+        const bx = ox+x, by = oy+y;
+        if (bx<0 || bx>=COLS || by>=ROWS) return true;
+        if (by>=0 && this.board[by][bx]) return true;
+      }
+    }
+    return false;
+  }
+
+  merge(){
+    const m = this.cur.m;
+    for(let y=0;y<m.length;y++){
+      for(let x=0;x<m[y].length;x++){
+        if(m[y][x]){
+          const by=this.y+y, bx=this.x+x;
+          if(by>=0) this.board[by][bx] = this.cur.color;
+        }
+      }
+    }
+  }
+
+  clearLines(){
+    let cleared = 0;
+    for(let y=ROWS-1;y>=0;y--){
+      if(this.board[y].every(c=>c)){
+        this.board.splice(y,1);
+        this.board.unshift(Array(COLS).fill(0));
+        cleared++;
+        y++;
+      }
+    }
+    if (cleared>0){
+      const points = [0,100,300,500,800][cleared] || 800;
+      this.score += points;
+      this.lines += cleared;
+    }
+    return cleared;
+  }
+
+  garbageFor(cleared){
+    if (cleared<=1) return 0;
+    if (cleared===2) return 1;
+    if (cleared===3) return 2;
+    return 4;
+  }
+
+  applyGarbage(n){
+    if (n<=0) return;
+    for(let i=0;i<n;i++){
+      this.board.shift();
+      const gapCol = Math.floor(Math.random()*COLS);
+      const row = Array(COLS).fill('#4b5563');
+      row[gapCol] = 0;
+      this.board.push(row);
+    }
+  }
+
+  move(dx){
+    if (this.gameOver) return;
+    if (!this.collides(this.cur.m, this.x+dx, this.y)) this.x += dx;
+  }
+
+  rotate(){
+    if (this.gameOver) return;
+    const rotated = rotateMatrix(this.cur.m);
+    if (!this.collides(rotated, this.x, this.y)){
+      this.cur.m = rotated;
+    } else if (!this.collides(rotated, this.x-1, this.y)){
+      this.x -= 1; this.cur.m = rotated;
+    } else if (!this.collides(rotated, this.x+1, this.y)){
+      this.x += 1; this.cur.m = rotated;
+    }
+  }
+
+  softDrop(){
+    if (this.gameOver) return 0;
+    if (!this.collides(this.cur.m, this.x, this.y+1)){
+      this.y += 1;
+      return 0;
+    } else {
+      return this.lock();
+    }
+  }
+
+  hardDrop(){
+    if (this.gameOver) return 0;
+    while(!this.collides(this.cur.m, this.x, this.y+1)) this.y++;
+    return this.lock();
+  }
+
+  lock(){
+    this.merge();
+    const cleared = this.clearLines();
+    this.spawn();
+    return this.garbageFor(cleared);
+  }
+
+  tick(now){
+    if (this.gameOver) return 0;
+    if (now - this.lastDrop > this.dropInterval){
+      this.lastDrop = now;
+      return this.softDrop();
+    }
+    return 0;
+  }
+}
+
+/* ---------------------------- Rendering ---------------------------- */
+
+function drawBoard(ctx, board, cur, x, y, w, h, cellSize){
+  const cell = cellSize || CELL;
+  ctx.clearRect(0,0,w,h);
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const val = board[r][c];
+      if (val){
+        ctx.fillStyle = val;
+        ctx.fillRect(c*cell, r*cell, cell-1, cell-1);
+      }
+    }
+  }
+  if (cur){
+    ctx.fillStyle = cur.color;
+    const m = cur.m;
+    for(let ry=0;ry<m.length;ry++){
+      for(let rx=0;rx<m[ry].length;rx++){
+        if (m[ry][rx]){
+          const by=y+ry, bx=x+rx;
+          if (by>=0) ctx.fillRect(bx*cell, by*cell, cell-1, cell-1);
+        }
+      }
+    }
+  }
+  // grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  for(let c=0;c<=COLS;c++){
+    ctx.beginPath(); ctx.moveTo(c*cell,0); ctx.lineTo(c*cell,h); ctx.stroke();
+  }
+  for(let r=0;r<=ROWS;r++){
+    ctx.beginPath(); ctx.moveTo(0,r*cell); ctx.lineTo(w,r*cell); ctx.stroke();
+  }
+}
+
+/* ---------------------------- Room / networking logic ---------------------------- */
+
+const MODE_TEAM_SIZE = { '1v1':1, '2v2':2, '3v3':3, '5v5':5 };
+
+const myId = 'p_' + Math.random().toString(36).slice(2,9);
+let selectedMode = '1v1';
+
+let roomId = null;
+let mode = '1v1';
+let teamSize = 1;
+let myTeam = null;
+let mySlot = null;
+let myName = 'Player';
+let hostId = null;
+
+let roomRef = null;
+let playersHandler = null;
+let statusHandler = null;
+
+let game = null;
+let running = false;
+let started = false;      // true once the room has entered gameplay (survives rematches)
+let matchEnded = false;
+let rafId = null;
+let lastSyncedAt = 0;
+
+let roomPlayers = {};      // latest snapshot of players/ in the room
+let panels = {};           // otherPlayerId -> { ctx }
+
+const el = id => document.getElementById(id);
+function esc(s){ return (s||'').replace(/[<>&]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
+function getName(){ return (el('nameInput').value || 'Player').trim().slice(0,16) || 'Player'; }
+
+function requireFirebase(){
+  if (!firebaseReady){
+    el('lobbyStatus').textContent = 'Firebase is not configured — see the notice above.';
+    return false;
+  }
+  return true;
+}
+
+/* ---- mode selection ---- */
+document.querySelectorAll('.modeBtn').forEach(btn=>{
+  btn.onclick = () => {
+    document.querySelectorAll('.modeBtn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedMode = btn.dataset.mode;
+  };
+});
+
+/* ---- create room ---- */
+el('createBtn').onclick = () => {
+  if (!requireFirebase()) return;
+  myName = getName();
+  mode = selectedMode;
+  teamSize = MODE_TEAM_SIZE[mode];
+  roomId = Math.random().toString(36).slice(2,7).toUpperCase();
+  myTeam = 'A'; mySlot = 1; hostId = myId;
+  roomRef = db.ref('tetrisRooms/' + roomId);
+  roomRef.set({
+    createdAt: Date.now(),
+    status: 'waiting',
+    mode, teamSize,
+    hostId: myId,
+    teamCounts: { A: 1, B: 0 },
+    players: {
+      [myId]: { name: myName, team: 'A', slot: 1, joined: true }
+    }
+  }).then(()=>{
+    roomRef.child('players/'+myId).onDisconnect().remove();
+    enterWaitingRoom();
+  }).catch(err=>{
+    el('lobbyStatus').textContent = 'Error: ' + err.message;
+  });
+};
+
+/* ---- join room ---- */
+el('joinBtn').onclick = () => {
+  if (!requireFirebase()) return;
+  const code = (el('joinInput').value || '').trim().toUpperCase();
+  if (!code){ el('lobbyStatus').textContent = 'Enter a room code.'; return; }
+  myName = getName();
+  const ref = db.ref('tetrisRooms/' + code);
+  ref.get().then(snap=>{
+    if (!snap.exists()){ el('lobbyStatus').textContent = 'Room not found.'; return; }
+    const data = snap.val();
+    if (data.status !== 'waiting'){ el('lobbyStatus').textContent = 'That match already started.'; return; }
+    roomId = code; roomRef = ref;
+    mode = data.mode || '1v1'; teamSize = data.teamSize || MODE_TEAM_SIZE[mode];
+    hostId = data.hostId;
+    el('lobbyStatus').textContent = '';
+    renderTeamChoice(data);
+  });
+};
+
+function renderTeamChoice(data){
+  const counts = data.teamCounts || { A:0, B:0 };
+  const box = el('teamChoice');
+  box.classList.remove('hidden');
+  box.innerHTML =
+    '<div style="margin-top:14px;font-size:12px;color:var(--muted);">Room ' + esc(roomId) + ' — ' + esc(mode) + ' — choose a team</div>' +
+    '<div class="row" style="margin-top:8px;">' +
+      '<button class="btn-secondary teamPickBtn" id="pickA"' + (counts.A>=teamSize?' disabled':'') + '>Team A (' + counts.A + '/' + teamSize + ')</button>' +
+      '<button class="btn-secondary teamPickBtn" id="pickB"' + (counts.B>=teamSize?' disabled':'') + '>Team B (' + counts.B + '/' + teamSize + ')</button>' +
+    '</div>';
+  el('pickA').onclick = () => joinTeam('A');
+  el('pickB').onclick = () => joinTeam('B');
+}
+
+function joinTeam(team){
+  roomRef.child('teamCounts/'+team).transaction(cur=>{
+    cur = cur || 0;
+    if (cur >= teamSize) return; // abort, team full
+    return cur + 1;
+  }).then(result=>{
+    if (!result.committed){
+      el('lobbyStatus').textContent = 'That team just filled up — try the other one.';
+      return;
+    }
+    const slot = result.snapshot.val();
+    myTeam = team; mySlot = slot;
+    roomRef.child('players/'+myId).set({ name: myName, team, slot, joined: true }).then(()=>{
+      roomRef.child('players/'+myId).onDisconnect().remove();
+      enterWaitingRoom();
+    });
+  });
+}
+
+/* ---- waiting room ---- */
+function enterWaitingRoom(){
+  el('lobby').style.display = 'none';
+  el('teamChoice').classList.add('hidden');
+  el('waitingRoom').style.display = 'block';
+  el('wRoomCode').textContent = roomId;
+  el('wMode').textContent = mode.toUpperCase();
+  listenRoom();
+}
+
+function listenRoom(){
+  playersHandler = snap=>{
+    roomPlayers = snap.val() || {};
+    if (!started){
+      renderRoster();
+    } else {
+      renderOthers();
+      updateTeamScoreboard();
+      checkMatchEnd();
+    }
+  };
+  roomRef.child('players').on('value', playersHandler);
+
+  statusHandler = snap=>{
+    const status = snap.val();
+    if (status === 'starting' && !running){
+      startMatch();
+    }
+  };
+  roomRef.child('status').on('value', statusHandler);
+}
+
+function renderRoster(){
+  const a = [], b = [];
+  Object.values(roomPlayers).forEach(p=>{ (p.team==='A' ? a : b).push(p); });
+  a.sort((x,y)=>x.slot-y.slot); b.sort((x,y)=>x.slot-y.slot);
+  el('rosterA').innerHTML = rosterHTML(a, teamSize);
+  el('rosterB').innerHTML = rosterHTML(b, teamSize);
+
+  const startBtn = el('startMatchBtn');
+  if (hostId === myId){
+    startBtn.classList.remove('hidden');
+    startBtn.disabled = !(a.length >= 1 && b.length >= 1);
+  } else {
+    startBtn.classList.add('hidden');
+  }
+  el('waitStatus').textContent = (hostId === myId)
+    ? (a.length>=1 && b.length>=1 ? 'Ready — start whenever you like.' : 'Waiting for at least 1 player on each team...')
+    : 'Waiting for the host to start the match...';
+}
+
+function rosterHTML(list, size){
+  let out = '';
+  for (let i=1; i<=size; i++){
+    const p = list.find(x=>x.slot===i);
+    out += '<div class="rosterSlot ' + (p?'filled':'open') + '">' + (p ? esc(p.name) : 'Open') + '</div>';
+  }
+  return out;
+}
+
+el('startMatchBtn').onclick = () => {
+  if (hostId !== myId || !roomRef) return;
+  roomRef.child('status').set('starting');
+};
+
+el('copyCodeBtn').onclick = () => {
+  if (!roomId) return;
+  navigator.clipboard?.writeText(roomId).then(()=>{
+    el('copyCodeBtn').textContent = 'Copied!';
+    setTimeout(()=>{ el('copyCodeBtn').textContent = 'Copy'; }, 1200);
+  });
+};
+
+el('wLeaveBtn').onclick = () => { cleanupRoom(); backToLobby(); };
+el('leaveBtn').onclick = () => { cleanupRoom(); backToLobby(); };
+
+function backToLobby(){
+  el('game').style.display = 'none';
+  el('waitingRoom').style.display = 'none';
+  el('lobby').style.display = 'block';
+  el('teamChoice').classList.add('hidden');
+  el('lobbyStatus').textContent = '';
+}
+
+/* ---- match start ---- */
+function startMatch(){
+  started = true;
+  matchEnded = false;
+  running = true;
+
+  el('waitingRoom').style.display = 'none';
+  el('lobby').style.display = 'none';
+  el('game').style.display = 'block';
+  el('roomCodeLabel').textContent = roomId;
+  el('modeLabel').textContent = mode.toUpperCase();
+  el('meName').textContent = (myName || 'YOU').toUpperCase() + ' (YOU)';
+  el('msgOverlay').textContent = '';
+  el('msgOverlay').className = 'msgOverlay';
+  el('rematchBtn').classList.add('hidden');
+
+  roomRef.child('players').get().then(snap=>{
+    roomPlayers = snap.val() || {};
+    if (roomPlayers[myId]) { myTeam = roomPlayers[myId].team; mySlot = roomPlayers[myId].slot; }
+    buildPanels();
+    updateTeamScoreboard();
+  });
+
+  game = new Game();
+
+  let count = 3;
+  const cd = el('countdown');
+  cd.classList.remove('hidden');
+  cd.textContent = count;
+  const cdInterval = setInterval(()=>{
+    count--;
+    if (count > 0){
+      cd.textContent = count;
+    } else {
+      cd.textContent = 'GO!';
+      setTimeout(()=>{ cd.classList.add('hidden'); }, 500);
+      clearInterval(cdInterval);
+      beginLoop();
+    }
+  }, 700);
+}
+
+function buildPanels(){
+  const grid = el('othersGrid');
+  grid.innerHTML = '';
+  panels = {};
+  const others = Object.entries(roomPlayers).filter(([id])=>id !== myId);
+  others.sort((a,b)=>{
+    if (a[1].team !== b[1].team) return a[1].team === myTeam ? -1 : 1;
+    return (a[1].slot||0) - (b[1].slot||0);
+  });
+  others.forEach(([id, p])=>{
+    const teamClass = p.team === 'A' ? 'teamA' : 'teamB';
+    const relClass = p.team === myTeam ? 'ally' : 'enemy';
+    const div = document.createElement('div');
+    div.className = 'boardPanel mini ' + teamClass + ' ' + relClass;
+    div.innerHTML =
+      '<h4>' + esc(p.name) + ' <span class="tag">' + (p.team===myTeam?'ally':'enemy') + '</span></h4>' +
+      '<canvas id="c_' + id + '" width="140" height="280"></canvas>' +
+      '<div class="ministats"><span>Sc <b id="s_' + id + '">0</b></span><span>Ln <b id="l_' + id + '">0</b></span><span id="st_' + id + '" class="ststat">-</span></div>';
+    grid.appendChild(div);
+    panels[id] = { ctx: div.querySelector('canvas').getContext('2d') };
+  });
+}
+
+function renderOthers(){
+  Object.entries(roomPlayers).forEach(([id, data])=>{
+    if (id === myId) return;
+    const p = panels[id];
+    if (!p) return;
+    const board = data.board ? decodeBoard(data.board) : emptyBoard();
+    const cur = data.cur ? { m: data.cur.m, color: data.cur.color } : null;
+    const x = data.cur ? data.cur.x : 0, y = data.cur ? data.cur.y : 0;
+    drawBoard(p.ctx, board, cur, x, y, 140, 280, 14);
+    const sEl = el('s_'+id), lEl = el('l_'+id), stEl = el('st_'+id);
+    if (sEl) sEl.textContent = data.score || 0;
+    if (lEl) lEl.textContent = data.lines || 0;
+    if (stEl) stEl.textContent = data.gameOver ? 'OUT' : 'Live';
+  });
+}
+
+function updateTeamScoreboard(){
+  let totA=0, aliveA=0, totB=0, aliveB=0;
+  Object.values(roomPlayers).forEach(p=>{
+    if (p.team === 'A'){ totA++; if (!p.gameOver) aliveA++; }
+    else { totB++; if (!p.gameOver) aliveB++; }
+  });
+  el('teamScoreboard').innerHTML =
+    '<span class="teamTagA">TEAM A</span> ' + aliveA + '/' + totA + ' alive &nbsp;—&nbsp; ' +
+    aliveB + '/' + totB + ' alive <span class="teamTagB">TEAM B</span>';
+}
+
+function checkMatchEnd(){
+  if (matchEnded || !running) return;
+  let totA=0, aliveA=0, totB=0, aliveB=0;
+  Object.values(roomPlayers).forEach(p=>{
+    if (p.team === 'A'){ totA++; if (!p.gameOver) aliveA++; }
+    else { totB++; if (!p.gameOver) aliveB++; }
+  });
+  if (totA === 0 || totB === 0) return; // roster not fully synced yet
+  const aDown = aliveA === 0, bDown = aliveB === 0;
+  if (!aDown && !bDown) return;
+
+  matchEnded = true;
+  running = false;
+  if (rafId) cancelAnimationFrame(rafId);
+  roomRef.child('status').set('ended');
+
+  const msg = el('msgOverlay');
+  if (aDown && bDown){
+    msg.textContent = "It's a draw — both teams topped out!";
+    msg.className = 'msgOverlay';
+  } else {
+    const myTeamDown = (myTeam === 'A' && aDown) || (myTeam === 'B' && bDown);
+    if (myTeamDown){ msg.textContent = 'Your team lost.'; msg.className = 'msgOverlay lose'; }
+    else { msg.textContent = 'Your team wins!'; msg.className = 'msgOverlay win'; }
+  }
+  if (hostId === myId) el('rematchBtn').classList.remove('hidden');
+}
+
+el('rematchBtn').onclick = () => {
+  el('rematchBtn').classList.add('hidden');
+  if (hostId !== myId || !roomRef) return;
+  roomRef.child('players').get().then(snap=>{
+    const players = snap.val() || {};
+    const updates = {};
+    Object.keys(players).forEach(id=>{
+      updates['players/'+id+'/gameOver'] = false;
+      updates['players/'+id+'/score'] = 0;
+      updates['players/'+id+'/lines'] = 0;
+      updates['players/'+id+'/incomingGarbage'] = 0;
+    });
+    updates['status'] = 'starting';
+    roomRef.update(updates);
+  });
+};
+
+function encodeBoard(board){
+  return board.map(row => row.map(c => c ? c : '0').join(','));
+}
+function decodeBoard(rows){
+  return rows.map(r => r.split(',').map(c => c==='0' ? 0 : c));
+}
+
+function pushState(force){
+  if (!roomRef || !game) return;
+  const now = performance.now();
+  if (!force && now - lastSyncedAt < 60) return; // throttle to ~16/sec
+  lastSyncedAt = now;
+  roomRef.child('players/'+myId).update({
+    board: encodeBoard(game.board),
+    cur: { m: game.cur.m, color: game.cur.color, x: game.x, y: game.y },
+    score: game.score,
+    lines: game.lines,
+    gameOver: game.gameOver,
+    name: myName,
+    team: myTeam,
+    slot: mySlot
+  });
+}
+
+function sendGarbage(n){
+  if (n <= 0 || !roomRef) return;
+  const opponents = Object.entries(roomPlayers).filter(([id,p]) => p.team !== myTeam && !p.gameOver);
+  if (opponents.length === 0) return;
+  const [targetId] = opponents[Math.floor(Math.random()*opponents.length)];
+  roomRef.child('players/'+targetId+'/incomingGarbage').transaction(cur => (cur||0) + n);
+}
+
+function listenIncomingGarbage(){
+  roomRef.child('players/'+myId+'/incomingGarbage').on('value', snap=>{
+    const n = snap.val();
+    if (n && n > 0 && game){
+      game.pendingGarbage += n;
+      roomRef.child('players/'+myId+'/incomingGarbage').set(0);
+    }
+  });
+}
+
+/* ---------------------------- Game loop & input ---------------------------- */
+
+function beginLoop(){
+  listenIncomingGarbage();
+  const myCtx = el('myCanvas').getContext('2d');
+
+  function loop(now){
+    if (!running) return;
+    if (!game.gameOver){
+      const garbage = game.tick(now);
+      if (garbage > 0) sendGarbage(garbage);
+      drawBoard(myCtx, game.board, game.cur, game.x, game.y, 200, 400, CELL);
+      el('myScore').textContent = game.score;
+      el('myLines').textContent = game.lines;
+      el('myNext').textContent = game.next.type;
+      pushState(false);
+
+      if (game.gameOver){
+        pushState(true);
+        const msg = el('msgOverlay');
+        msg.textContent = 'You topped out — waiting on your team...';
+        msg.className = 'msgOverlay wait';
+        return; // stop ticking my own board; match end is driven by the players listener
+      }
+    }
+    rafId = requestAnimationFrame(loop);
+  }
+  rafId = requestAnimationFrame(loop);
+}
+
+document.addEventListener('keydown', e=>{
+  if (!running || !game || game.gameOver) return;
+  switch(e.code){
+    case 'ArrowLeft': game.move(-1); e.preventDefault(); break;
+    case 'ArrowRight': game.move(1); e.preventDefault(); break;
+    case 'ArrowDown': {
+      const g = game.softDrop();
+      if (g>0) sendGarbage(g);
+      e.preventDefault();
+      break;
+    }
+    case 'ArrowUp': game.rotate(); e.preventDefault(); break;
+    case 'Space': {
+      const g = game.hardDrop();
+      if (g>0) sendGarbage(g);
+      e.preventDefault();
+      break;
+    }
+  }
+  pushState(true);
+});
+
+function cleanupRoom(){
+  running = false;
+  started = false;
+  matchEnded = false;
+  if (rafId) cancelAnimationFrame(rafId);
+  if (roomRef){
+    if (playersHandler) roomRef.child('players').off('value', playersHandler);
+    if (statusHandler) roomRef.child('status').off('value', statusHandler);
+    if (hostId === myId){
+      roomRef.child('players').get().then(snap=>{
+        const players = snap.val() || {};
+        delete players[myId];
+        const remaining = Object.keys(players);
+        if (remaining.length > 0) roomRef.child('hostId').set(remaining[0]);
+      });
+    }
+    roomRef.child('players/'+myId).onDisconnect().cancel();
+    roomRef.child('players/'+myId).remove();
+    if (myTeam) roomRef.child('teamCounts/'+myTeam).transaction(cur => Math.max((cur||1)-1, 0));
+  }
+  roomRef = null; roomId = null; myTeam = null; mySlot = null; hostId = null;
+  game = null; roomPlayers = {}; panels = {};
+}
+</script>
+</body>
+</html>
