@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>MAKOYX Tetris Battle</title>
+<style>
+*{box-sizing:border-box;margin:0}
+body{min-height:100vh;font-family:'Trebuchet MS',Arial,sans-serif;background:radial-gradient(circle at 50% 0,#a6ec62,#3f9f25 70%);color:#fff;display:flex;flex-direction:column;align-items:center;padding:10px;user-select:none;touch-action:manipulation}
+h1{font-size:36px;font-style:italic;color:#ffe600;text-shadow:0 3px 0 #b45309,0 0 14px #0008;letter-spacing:2px;margin:4px 0 10px}
+.hide{display:none!important}
+.card{background:linear-gradient(#323746,#12141b);border:3px solid #8a90a3;border-radius:14px;padding:16px;box-shadow:0 6px 0 #0007;width:100%;max-width:440px}
+input{width:100%;padding:10px;border-radius:8px;border:2px solid #555b70;background:#0c0e14;color:#fff;font-size:16px;margin:6px 0}
+button{cursor:pointer;border:0;border-radius:8px;padding:11px 14px;font:700 14px 'Trebuchet MS',Arial;background:#3b4155;color:#fff;box-shadow:0 3px 0 #0008}
+button:active{transform:translateY(2px);box-shadow:none}button:disabled{opacity:.4}
+.go{background:linear-gradient(#ffe600,#f59e0b);color:#3a2200}
+.row{display:flex;gap:8px;margin:8px 0;flex-wrap:wrap}.row>*{flex:1}
+.m.on{background:linear-gradient(#37d7ff,#0a84c7)}
+#msg{min-height:20px;color:#ffd84a;margin-top:8px;font-size:13px}
+.pl{padding:8px 10px;margin:5px 0;border-radius:6px;background:#0c0e14;border-left:5px solid #37d7ff;display:flex;justify-content:space-between}
+.pl.t1{border-color:#ff5252}
+#top{display:flex;gap:8px;align-items:stretch;width:100%;max-width:980px;margin-bottom:8px}
+.pn{flex:1;background:linear-gradient(#2a6bd1,#0f2f6e);border:3px solid #cfd6e6;border-radius:10px;padding:6px 10px;font-weight:700}
+.tb{background:#fff;color:#444;border-radius:0 0 12px 12px;padding:2px 22px;text-align:center;font-size:11px}
+.tb b{display:block;font-size:26px;color:#f5c400;background:#222;border-radius:6px;padding:0 8px;text-shadow:0 0 6px #f5c40088}
+#arena{display:flex;gap:14px;align-items:flex-start;justify-content:center;flex-wrap:wrap;width:100%;max-width:980px}
+#me{display:flex;gap:6px;align-items:flex-start;background:linear-gradient(#222632,#0b0d12);border:4px solid #707689;border-radius:16px;padding:10px;position:relative}
+.side{display:flex;flex-direction:column;gap:6px;align-items:center}
+.lbl{font:italic 900 15px Arial;color:#9be3ff;text-shadow:0 2px 0 #000}
+.side canvas{background:#0c0e14;border:3px solid #596075;border-radius:8px;width:76px}
+#bw{width:min(280px,50vw);position:relative}
+#bw canvas{width:100%;display:block;border:3px solid #596075;border-radius:6px}
+#gb{width:10px;height:calc(min(280px,50vw)*2);background:#0c0e14;border-radius:5px;display:flex;align-items:flex-end;overflow:hidden}
+#gbf{width:100%;background:linear-gradient(#ff7b7b,#d00000);height:0;transition:height .15s}
+#st{display:flex;flex-direction:column;gap:2px;font-size:11px;text-align:center;margin-top:4px;color:#9be3ff}#st b{display:block;font-size:17px;color:#fff}
+#fx{position:absolute;left:0;right:0;top:35%;text-align:center;font:900 24px Arial;color:#ffe600;text-shadow:0 2px 0 #b45309,0 0 8px #000;pointer-events:none;opacity:0}
+#fx.s{animation:pop 1.1s ease-out}@keyframes pop{0%{opacity:1;transform:scale(.6)}20%{transform:scale(1.15)}100%{opacity:0;transform:translateY(-40px)}}
+#opps{display:flex;flex-wrap:wrap;gap:8px;flex:1;min-width:230px;justify-content:center}
+.opp{background:linear-gradient(#222632,#0b0d12);border:3px solid #ff5252;border-radius:10px;padding:5px;width:116px;position:relative;text-align:center;font-size:11px}
+.opp.ally{border-color:#37d7ff}.opp canvas{width:100%;display:block;border-radius:4px}
+.opp .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;margin-bottom:3px}
+.opp.out::after{content:'OUT';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#000a;font:900 24px Arial;color:#ff5252;border-radius:8px}
+#res{position:fixed;inset:0;background:#000b;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;z-index:9;text-align:center}
+#res h2{font:900 clamp(34px,9vw,70px) Arial;color:#ffe600;text-shadow:0 4px 0 #b45309}
+#tc{display:none;gap:6px;margin-top:10px;width:100%;max-width:420px}#tc button{flex:1;padding:16px 0;font-size:18px}
+@media(pointer:coarse),(max-width:700px){#tc{display:flex}}
+@media(max-width:700px){#arena{flex-direction:column;align-items:center}#opps{order:-1}.opp{width:76px;font-size:9px}}
+</style></head><body>
+<h1>MAKOYX TETRIS BATTLE</h1>
+
+<div id="lobby" class="card">
+ <label>Username</label><input id="nm" maxlength="14" placeholder="Enter username">
+ <div class="row" id="modes"></div>
+ <div class="row"><button class="go" id="qm">Quick Match</button><button id="cr">Private Room</button></div>
+ <div class="row"><input id="jc" maxlength="5" placeholder="ROOM CODE" style="text-transform:uppercase"><button id="jn">Join</button></div>
+ <div id="msg"></div>
+</div>
+
+<div id="room" class="card hide">
+ <div class="row" style="align-items:center"><div>Room <b id="rc" style="color:#ffe600;font-size:22px"></b></div><div id="rm"></div><button id="rl">Leave</button></div>
+ <div id="rost"></div><div id="rs" style="font-size:13px;margin:8px 0;color:#ffd84a"></div>
+ <button class="go hide" id="start" style="width:100%">Start Match</button>
+</div>
+
+<div id="game" class="hide" style="width:100%;display:flex;flex-direction:column;align-items:center">
+ <div id="top"><div class="pn" id="mn"></div><div class="tb">TIME<b id="tm">00:00</b></div><div class="pn" id="mt" style="text-align:right"></div></div>
+ <div id="arena">
+  <div id="me">
+   <div class="side"><span class="lbl">HOLD</span><canvas id="hc" width="76" height="60"></canvas><div id="st"><span>SCORE<b id="sc">0</b></span><span>LINES<b id="ln">0</b></span><span>LEVEL<b id="lv">1</b></span></div></div>
+   <div id="gb"><div id="gbf"></div></div>
+   <div id="bw"><canvas id="bc" width="280" height="560"></canvas><div id="fx"></div></div>
+   <div class="side"><span class="lbl">NEXT</span><canvas id="nc" width="76" height="310"></canvas></div>
+  </div>
+  <div id="opps"></div>
+ </div>
+ <div id="tc"><button data-a="L">◀</button><button data-a="SD">▼</button><button data-a="R">▶</button><button data-a="CCW">↺</button><button data-a="CW">↻</button><button data-a="HOLD">H</button><button data-a="HD">⤓</button></div>
+ <p style="font-size:12px;margin-top:10px;text-shadow:0 1px 0 #000">←→ move · ↓ soft · ↑/X rotate · Z counter-rotate · Space hard drop · C hold</p>
+</div>
+
+<div id="res" class="hide"><h2 id="rt"></h2><div id="rsub"></div><div class="row"><button class="go" id="again">Rematch</button><button id="back">Return to Lobby</button></div></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+/* ===== PASTE YOUR NEW MAKOYX FIREBASE CONFIG HERE (Project settings > Your apps > Web) ===== */
+const firebaseConfig={
+  apiKey:"AIzaSyCKFAwHTuPLP_eEmQy2ttFx7EzqVJkaA0k",
+  authDomain:"alaw-tetris.firebaseapp.com",
+  databaseURL:"https://alaw-tetris-default-rtdb.firebaseio.com",
+  projectId:"alaw-tetris",
+  storageBucket:"alaw-tetris.firebasestorage.app",
+  messagingSenderId:"563387290486",
+  appId:"1:563387290486:web:3be69f9de03c55a778a057"
+};
+/* ========================================================================================= */
+const $=id=>document.getElementById(id),esc=s=>String(s).replace(/[<>&"]/g,c=>'&#'+c.charCodeAt(0)+';');
+const MODES={'1v1':{t:2,s:1},'2v2':{t:2,s:2},'3v3':{t:2,s:3},'4v4':{t:2,s:4},'5v5':{t:2,s:5},'FFA':{t:10,s:1}};
+/* ---------- Tetris core: SRS ---------- */
+const P={I:[4,[[0,1],[1,1],[2,1],[3,1]]],O:[4,[[1,0],[2,0],[1,1],[2,1]]],T:[3,[[1,0],[0,1],[1,1],[2,1]]],S:[3,[[1,0],[2,0],[0,1],[1,1]]],Z:[3,[[0,0],[1,0],[1,1],[2,1]]],J:[3,[[0,0],[0,1],[1,1],[2,1]]],L:[3,[[2,0],[0,1],[1,1],[2,1]]]};
+const SH={};for(const t in P){const[n,c]=P[t];SH[t]=[c];for(let r=1;r<4;r++)SH[t][r]=SH[t][r-1].map(([x,y])=>[n-1-y,x])}
+const KJ={'01':'0,0 -1,0 -1,1 0,-2 -1,-2','10':'0,0 1,0 1,-1 0,2 1,2','12':'0,0 1,0 1,-1 0,2 1,2','21':'0,0 -1,0 -1,1 0,-2 -1,-2','23':'0,0 1,0 1,1 0,-2 1,-2','32':'0,0 -1,0 -1,-1 0,2 -1,2','30':'0,0 -1,0 -1,-1 0,2 -1,2','03':'0,0 1,0 1,1 0,-2 1,-2'};
+const KI={'01':'0,0 -2,0 1,0 -2,-1 1,2','10':'0,0 2,0 -1,0 2,1 -1,-2','12':'0,0 -1,0 2,0 -1,2 2,-1','21':'0,0 1,0 -2,0 1,-2 -2,1','23':'0,0 2,0 -1,0 2,1 -1,-2','32':'0,0 -2,0 1,0 -2,-1 1,2','30':'0,0 1,0 -2,0 1,-2 -2,1','03':'0,0 -1,0 2,0 -1,2 2,-1'};
+const CB=[0,0,1,1,2,2,3,3,4,4,4,5];
+function mul(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+class Game{
+ constructor(seed){this.R=mul(seed);this.b=Array.from({length:20},()=>Array(10).fill(''));this.q=[];this.hold='';this.can=1;this.sc=0;this.ln=0;this.cb=-1;this.b2=0;this.inc=0;this.dead=0;this.m='';this.spawn()}
+ get lv(){return this.ln/10|0}
+ g(){return Math.max(60,800*Math.pow(.85,this.lv))}
+ bag(){while(this.q.length<7){const a=[...'IOTSZJL'];for(let i=6;i;i--){const j=this.R()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}this.q.push(...a)}}
+ spawn(t){this.bag();t=t||this.q.shift();this.bag();this.p={t,r:0,x:3,y:0};this.tsp=0;this.gt=0;this.rs=0;this.acc=0;if(this.hit(t,0,3,0))this.dead=1}
+ hit(t,r,x,y){return SH[t][r].some(([a,c])=>{const X=x+a,Y=y+c;return X<0||X>9||Y>19||(Y>=0&&this.b[Y][X])})}
+ reset(){if(this.rs++<15)this.gt=0}
+ go(d){const p=this.p;if(!this.hit(p.t,p.r,p.x+d,p.y)){p.x+=d;this.tsp=0;this.reset()}}
+ rot(d){const p=this.p;if(p.t==='O')return;const to=(p.r+d+4)%4;for(const k of(p.t==='I'?KI:KJ)[''+p.r+to].split(' ')){const[kx,ky]=k.split(',').map(Number);if(!this.hit(p.t,to,p.x+kx,p.y-ky)){p.r=to;p.x+=kx;p.y-=ky;this.tsp=1;this.reset();return}}}
+ down(){const p=this.p;if(!this.hit(p.t,p.r,p.x,p.y+1)){p.y++;this.tsp=0;return 1}}
+ gy(){const p=this.p;let y=p.y;while(!this.hit(p.t,p.r,p.x,y+1))y++;return y}
+ hard(){const y=this.gy();this.sc+=(y-this.p.y)*2;this.p.y=y;return this.lock()}
+ holdP(){if(!this.can)return;const h=this.hold;this.hold=this.p.t;this.spawn(h||undefined);this.can=0}
+ update(dt,soft){const g=soft?Math.min(40,this.g()):this.g(),p=this.p;this.acc+=dt;
+  while(this.acc>=g){this.acc-=g;if(this.down()){if(soft)this.sc++}else{this.acc=0;break}}
+  if(this.hit(p.t,p.r,p.x,p.y+1)){this.gt+=dt;if(this.gt>500)return this.lock()}else this.gt=0;return null}
+ lock(){const{t,r,x,y}=this.p;let ts=0;
+  if(t==='T'&&this.tsp){let c=0;for(const[dx,dy]of[[0,0],[2,0],[0,2],[2,2]]){const X=x+dx,Y=y+dy;if(X<0||X>9||Y>19||(Y>=0&&this.b[Y][X]))c++}ts=c>=3}
+  for(const[a,c]of SH[t][r])if(y+c>=0)this.b[y+c][x+a]=t;
+  const keep=this.b.filter(w=>w.some(c=>!c)),n=20-keep.length;while(keep.length<20)keep.unshift(Array(10).fill(''));this.b=keep;
+  let atk=0,m='';
+  if(n){this.cb++;const hard=n===4||ts;atk=ts?[0,2,4,6][n]:[0,0,1,2,4][n];
+   if(hard&&this.b2){atk++;m='B2B '}this.b2=hard?1:0;atk+=CB[Math.min(this.cb,11)];
+   m+=(ts?'T-SPIN ':'')+['','SINGLE','DOUBLE','TRIPLE','TETRIS'][n]+(this.cb>0?' x'+this.cb:'');
+   this.sc+=((ts?[0,800,1200,1600]:[0,100,300,500,800])[n]*(this.lv+1)*(this.b2&&hard?1.5:1)|0)+50*this.cb;this.ln+=n;
+   if(this.b.every(w=>w.every(c=>!c))){atk+=10;m='PERFECT CLEAR!';this.sc+=2000}
+  }else{this.cb=-1;if(ts){m='T-SPIN';this.sc+=400}}
+  if(atk>0&&this.inc>0){const c=Math.min(this.inc,atk);this.inc-=c;atk-=c}
+  if(!n&&this.inc>0){const k=Math.min(this.inc,8),h=Math.random()*10|0;this.inc-=k;
+   for(let i=0;i<k;i++){if(this.b[0].some(c=>c))this.dead=1;this.b.shift();const w=Array(10).fill('G');w[h]='';this.b.push(w)}}
+  this.m=m;this.can=1;this.spawn();return atk}
+}
+/* ---------- Rendering ---------- */
+const COL={I:'#22d3ee',O:'#facc15',T:'#a855f7',S:'#22c55e',Z:'#ef4444',J:'#3b82f6',L:'#f97316',G:'#7c8190'};
+function cell(c,t,x,y,s,a){c.globalAlpha=a||1;c.fillStyle=COL[t];c.fillRect(x,y,s,s);c.fillStyle='rgba(255,255,255,.4)';c.fillRect(x,y,s,s*.18);c.fillRect(x,y,s*.18,s);c.fillStyle='rgba(0,0,0,.3)';c.fillRect(x,y+s*.82,s,s*.18);c.fillRect(x+s*.82,y,s*.18,s);c.globalAlpha=1}
+function paint(c,rows,s,p,gy){c.fillStyle='#14171f';c.fillRect(0,0,s*10,s*20);c.strokeStyle='rgba(255,255,255,.05)';c.beginPath();
+ for(let i=1;i<10;i++){c.moveTo(i*s,0);c.lineTo(i*s,s*20)}for(let i=1;i<20;i++){c.moveTo(0,i*s);c.lineTo(s*10,i*s)}c.stroke();
+ for(let y=0;y<20;y++)for(let x=0;x<10;x++){const k=rows[y][x];if(k&&k!=='.')cell(c,k,x*s,y*s,s)}
+ if(p){if(gy!=null&&gy!==p.y)for(const[a,b]of SH[p.t][p.r])cell(c,p.t,(p.x+a)*s,(gy+b)*s,s,.25);
+  for(const[a,b]of SH[p.t][p.r])if(p.y+b>=0)cell(c,p.t,(p.x+a)*s,(p.y+b)*s,s)}}
+function prev(c,t,cx,cy,s){if(!t)return;const cs=SH[t][0],n=P[t][0];for(const[a,b]of cs)cell(c,t,cx+(a-n/2)*s,cy+(b-n/2)*s,s)}
+/* ---------- Networking ---------- */
+let uid,name,mode='1v1',room,rr,host,pls={},sts={},run=0,inMatch=0,G1,myTeam,raf,last,lp=0,t0,soft=0,nTeams=0;const H={dir:0,t:0};
+const say=t=>$('msg').textContent=t;
+$('modes').innerHTML=Object.keys(MODES).map(m=>`<button class="m${m===mode?' on':''}" data-m="${m}">${m}</button>`).join('');
+$('modes').onclick=e=>{const m=e.target.dataset.m;if(!m)return;mode=m;document.querySelectorAll('.m').forEach(b=>b.classList.toggle('on',b.dataset.m===m))};
+try{$('nm').value=localStorage.getItem('mkx_name')||''}catch(e){}
+let db,auth;
+try{firebase.initializeApp(firebaseConfig);auth=firebase.auth();db=firebase.database();
+ auth.signInAnonymously().then(u=>uid=u.user.uid).catch(e=>say('Sign-in failed: enable Anonymous auth in Firebase. '+e.message))}catch(e){say('Firebase config error: '+e.message)}
+function getName(){name=($('nm').value||'').trim().slice(0,14);if(!name){say('Enter a username first.');return 0}if(!uid){say('Connecting… try again in a second.');return 0}try{localStorage.setItem('mkx_name',name)}catch(e){}return 1}
+const rid=()=>Math.random().toString(36).slice(2,7).toUpperCase();
+function myTeamFor(d,pl){const M=MODES[d.mode];if(M.t===10)return 'u'+uid;const c=[0,0];Object.values(pl).forEach(p=>c[p.t]++);return c[0]<=c[1]?(c[0]<M.s?0:1):(c[1]<M.s?1:0)}
+async function join(id,pub){const r=db.ref('rooms/'+id),d=(await r.once('value')).val();
+ const fail=m=>{if(pub)db.ref('lobby/'+(d&&d.mode||mode)+'/'+id).remove();say(m);return 0};
+ if(!d||!d.pl)return fail('Room not found.');if(d.state!=='wait')return fail('That match already started.');
+ const M=MODES[d.mode];if(Object.keys(d.pl).length>=M.t*M.s)return pub?0:fail('Room is full.');
+ mode=d.mode;const t=myTeamFor(d,d.pl),pr=r.child('pl/'+uid);await pr.set({n:name,t,ts:firebase.database.ServerValue.TIMESTAMP});pr.onDisconnect().remove();enter(id);return 1}
+async function create(pub){const id=rid();await db.ref('rooms/'+id).set({mode,state:'wait',host:uid,pl:{[uid]:{n:name,t:MODES[mode].t===10?'u'+uid:0,ts:firebase.database.ServerValue.TIMESTAMP}}});
+ db.ref('rooms/'+id+'/pl/'+uid).onDisconnect().remove();
+ if(pub){const l=db.ref('lobby/'+mode+'/'+id);await l.set(true);l.onDisconnect().remove()}enter(id)}
+$('cr').onclick=()=>{if(getName())create(false).catch(e=>say(e.message))};
+$('jn').onclick=()=>{if(!getName())return;const c=$('jc').value.trim().toUpperCase();if(c)join(c).catch(e=>say(e.message))};
+$('qm').onclick=async()=>{if(!getName())return;say('Searching for a match…');try{const ids=Object.keys((await db.ref('lobby/'+mode).once('value')).val()||{});
+ for(const id of ids)if(await join(id,1))return;await create(1);say('')}catch(e){say(e.message)}};
+function show(s){['lobby','room','game'].forEach(k=>$(k).classList.toggle('hide',k!==s));$('game').style.display=s==='game'?'flex':'none'}
+function enter(id){room=id;rr=db.ref('rooms/'+id);say('');$('rc').textContent=id;$('rm').textContent=mode;show('room');
+ rr.child('mode').on('value',s=>{if(s.val())mode=s.val();$('rm').textContent=mode});
+ rr.child('host').on('value',s=>{host=s.val();roster()});
+ rr.child('pl').on('value',s=>{pls=s.val()||{};roster();
+  if(host&&!pls[host]&&uid in pls&&Object.keys(pls).every(i=>pls[uid].ts<=pls[i].ts))rr.child('host').set(uid);
+  if(run)checkEnd()});
+ rr.child('st').on('value',s=>{sts=s.val()||{};drawOpps();if(run)checkEnd()});
+ rr.child('state').on('value',async s=>{const v=s.val();
+  if(v==='wait'){inMatch=0;run=0;cancelAnimationFrame(raf);$('res').classList.add('hide');show('room')}
+  else if(v==='play'&&!inMatch){inMatch=1;const seed=(await rr.child('seed').once('value')).val();startMatch(seed)}});
+ rr.child('g/'+uid).on('child_added',s=>{if(G1&&run)G1.inc+=s.val();s.ref.remove()})}
+function roster(){const M=MODES[mode]||MODES['1v1'],ids=Object.keys(pls).sort((a,b)=>pls[a].ts-pls[b].ts),cap=M.t*M.s;
+ $('rost').innerHTML=ids.map(i=>`<div class="pl t${M.t===2?pls[i].t:0}"><span>${esc(pls[i].n)}${i===host?' 👑':''}${i===uid?' (you)':''}</span><small>${M.t===2?'TEAM '+'AB'[pls[i].t]:'FFA'}</small></div>`).join('');
+ const teams=new Set(ids.map(i=>pls[i].t)).size,ok=teams>=2,h=host===uid;
+ $('start').classList.toggle('hide',!h);$('start').disabled=!ok;
+ $('rs').textContent=`${ids.length}/${cap} players. `+(h?(ok?'Ready — start when you like.':'Need players on both sides.'):'Waiting for the host…');
+ const full=ids.length===cap&&h;if(full&&!roster.t){roster.t=setTimeout(()=>{roster.t=0;if(host===uid&&Object.keys(pls).length===cap)startHost()},3000)}}
+$('start').onclick=()=>startHost();
+function startHost(){db.ref().update({['rooms/'+room+'/seed']:Math.random()*4e9|0,['rooms/'+room+'/st']:null,['rooms/'+room+'/g']:null,['lobby/'+mode+'/'+room]:null,['rooms/'+room+'/state']:'play'})}
+function leave(){run=0;inMatch=0;cancelAnimationFrame(raf);if(rr){rr.child('pl/'+uid).onDisconnect().cancel();const only=Object.keys(pls).length<=1;rr.off();rr.child('pl/'+uid).remove();rr.child('st/'+uid).remove();
+ if(only){db.ref('lobby/'+mode+'/'+room).remove();rr.remove()}}
+ rr=null;pls={};sts={};G1=null;$('res').classList.add('hide');show('lobby')}
+$('rl').onclick=$('back').onclick=leave;
+$('again').onclick=()=>{if(host===uid)rr.update({state:'wait',st:null,g:null});else $('rsub').textContent='Waiting for the host to start a rematch…'};
+/* ---------- Match ---------- */
+function startMatch(seed){G1=new Game(seed);myTeam=pls[uid]?pls[uid].t:0;nTeams=new Set(Object.values(pls).map(p=>p.t)).size;
+ show('game');$('res').classList.add('hide');$('mn').textContent=name;$('mt').textContent=mode;$('rsub').textContent='';
+ const opp=Object.keys(pls).filter(i=>i!==uid).sort((a,b)=>(pls[a].t===myTeam?0:1)-(pls[b].t===myTeam?0:1));
+ $('opps').innerHTML=opp.map(i=>`<div class="opp ${pls[i].t===myTeam&&MODES[mode].t===2?'ally':''}" id="o_${i}"><div class="nm">${esc(pls[i].n)}</div><canvas width="100" height="200"></canvas><div class="sc" style="font-size:10px">0</div></div>`).join('');
+ push(1);let n=3;fx(n);const iv=setInterval(()=>{n--;if(n>0)fx(n);else{clearInterval(iv);fx('GO!');run=1;t0=last=performance.now();raf=requestAnimationFrame(loop)}},800)}
+function fx(t){const f=$('fx');f.textContent=t;f.className='';void f.offsetWidth;f.className='s'}
+function drawOpps(){for(const i in pls){if(i===uid)continue;const o=$('o_'+i),s=sts[i];if(!o||!s)continue;const rows=s.b.match(/.{10}/g),c=o.querySelector('canvas').getContext('2d');
+ let p=null;if(s.c){const q=s.c.split(',');p={t:q[0],r:+q[1],x:+q[2],y:+q[3]}}paint(c,rows,10,p);o.querySelector('.sc').textContent=s.s;o.classList.toggle('out',s.a===0)}}
+function push(f){const n=performance.now();if(!f&&n-lp<110||!rr||!G1)return;lp=n;const g=G1,p=g.p;
+ rr.child('st/'+uid).set({b:g.b.map(w=>w.map(c=>c||'.').join('')).join(''),c:g.dead?'':[p.t,p.r,p.x,p.y].join(),s:g.sc,a:g.dead?0:1})}
+function done(a){const g=G1;if(g.m)fx(g.m);if(a>0)send(a);push(1);if(g.dead)fx('K.O.')}
+function send(n){const o=Object.keys(pls).filter(i=>i!==uid&&pls[i].t!==myTeam&&!(sts[i]&&sts[i].a===0));if(o.length)rr.child('g/'+o[Math.random()*o.length|0]).push(n)}
+function checkEnd(){if(!run||!G1)return;const alive=new Set();for(const i in pls){const dead=i===uid?G1.dead:(sts[i]&&sts[i].a===0);if(!dead)alive.add(pls[i].t)}
+ if(alive.size>1)return;run=0;cancelAnimationFrame(raf);const win=alive.has(myTeam),team=MODES[mode].s>1;
+ if(host===uid)rr.child('state').set('end');
+ $('rt').textContent=win?'YOU WIN!':team?'HAHA VOVO TEAM! 🤣':'HAHA VOVO! 🤣';$('again').textContent=host===uid?'Rematch':'Ask for Rematch';$('res').classList.remove('hide')}
+function loop(now){if(!run)return;raf=requestAnimationFrame(loop);const g=G1,dt=Math.min(now-last,50);last=now;
+ if(!g.dead){if(H.dir&&now>=H.t){g.go(H.dir);H.t=now+40}const a=g.update(dt,soft);if(a!=null)done(a)}
+ const p=g.p;paint(bc,g.b,28,g.dead?null:p,g.dead?null:g.gy());
+ hc.fillStyle='#0c0e14';hc.fillRect(0,0,76,60);prev(hc,g.hold,38,30,14);
+ nc.fillStyle='#0c0e14';nc.fillRect(0,0,76,310);g.q.slice(0,5).forEach((t,i)=>prev(nc,t,38,36+i*60,14));
+ $('sc').textContent=g.sc;$('ln').textContent=g.ln;$('lv').textContent=g.lv+1;$('gbf').style.height=Math.min(g.inc,20)*5+'%';
+ const s=(now-t0)/1000|0;$('tm').textContent=String(s/60|0).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+ push(0);checkEnd()}
+const bc=$('bc').getContext('2d'),hc=$('hc').getContext('2d'),nc=$('nc').getContext('2d');
+/* ---------- Input ---------- */
+function press(a,on){if(!run||!G1)return;const g=G1;
+ if(!on){if(a==='SD')soft=0;if((a==='L'&&H.dir<0)||(a==='R'&&H.dir>0))H.dir=0;return}
+ if(g.dead)return;
+ if(a==='L'||a==='R'){const d=a==='L'?-1:1;g.go(d);H.dir=d;H.t=performance.now()+150}
+ else if(a==='CW')g.rot(1);else if(a==='CCW')g.rot(-1);else if(a==='HD')done(g.hard());else if(a==='HOLD')g.holdP();else if(a==='SD')soft=1}
+const KM={ArrowLeft:'L',ArrowRight:'R',ArrowUp:'CW',KeyX:'CW',KeyZ:'CCW',Space:'HD',ArrowDown:'SD',KeyC:'HOLD',ShiftLeft:'HOLD'};
+addEventListener('keydown',e=>{const a=KM[e.code];if(a&&run){e.preventDefault();if(!e.repeat)press(a,1)}});
+addEventListener('keyup',e=>{const a=KM[e.code];if(a)press(a,0)});
+$('tc').addEventListener('pointerdown',e=>{const a=e.target.dataset.a;if(a){e.preventDefault();press(a,1)}});
+['pointerup','pointercancel','pointerleave'].forEach(v=>$('tc').addEventListener(v,e=>{const a=e.target.dataset&&e.target.dataset.a;if(a)press(a,0)}));
+</script></body></html>
