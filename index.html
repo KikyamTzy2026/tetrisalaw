@@ -14,10 +14,13 @@ button{cursor:pointer;border:0;border-radius:8px;padding:11px 14px;font:700 14px
 button:active{transform:translateY(2px);box-shadow:none}button:disabled{opacity:.4}
 .go{background:linear-gradient(#ffe600,#f59e0b);color:#3a2200}
 .row{display:flex;gap:8px;margin:8px 0}.row>*{flex:1}
+#modes{flex-wrap:wrap}#modes button{flex:1 1 28%}
 .m.on{background:linear-gradient(#37d7ff,#0a84c7)}
+.m.ffa{background:#6b2fa0}.m.ffa.on{background:linear-gradient(#ff5fe0,#a21caf)}
 #ls{min-height:18px;color:#ffd84a;font-size:13px;margin-top:8px}
 .cols{display:flex;gap:10px}.col{flex:1;background:#0c0e14;border-radius:10px;padding:8px}.col h3{font-size:13px;text-align:center;margin-bottom:6px}
 .slot{padding:8px;margin:4px 0;border-radius:6px;background:#1c2030;border:1px dashed #555b70;font-size:13px;text-align:center;color:#8a90a3}.slot.f{border-style:solid;color:#fff}
+#ra.ffa{display:grid;grid-template-columns:1fr 1fr;gap:0 8px}
 #top{display:flex;gap:8px;align-items:flex-start;width:100%;max-width:1000px;margin-bottom:6px}
 #banner{display:flex;gap:8px;align-items:center;background:linear-gradient(#2a6bd1,#123a85);border:3px solid #dfe6f5;border-radius:12px;padding:5px 12px 5px 6px;flex:1;max-width:300px}
 .av{width:38px;height:38px;border-radius:7px;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font:900 20px Arial;flex:none}
@@ -47,7 +50,8 @@ button:active{transform:translateY(2px);box-shadow:none}button:disabled{opacity:
 .opp.tg::before{content:'';position:absolute;left:20%;right:20%;top:30%;aspect-ratio:1;border:5px solid #37d7ff;border-radius:50%;box-shadow:0 0 12px #37d7ff,inset 0 0 12px #37d7ff;z-index:3;animation:rt .7s}@keyframes rt{from{transform:scale(1.6);opacity:0}to{transform:scale(1);opacity:1}}
 .dm{position:fixed;width:16px;height:16px;border:3px solid #37d7ff;background:#37d7ff44;transform:rotate(45deg);transition:left .5s ease-in,top .5s ease-in,opacity .5s;z-index:8;pointer-events:none}
 #res{position:fixed;inset:0;background:#000b;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;z-index:9;text-align:center;padding:10px}
-#res h2{font:900 clamp(34px,9vw,70px) Arial;color:#ffe600;text-shadow:0 4px 0 #b45309}
+#res h2{font:900 clamp(26px,7vw,56px)/1.15 Arial;color:#ffe600;text-shadow:0 4px 0 #b45309;max-width:92vw}
+#res h2.long{font-size:clamp(22px,5.2vw,42px)}
 #tc{display:none;gap:6px;margin-top:8px;width:100%;max-width:440px}#tc button{flex:1;padding:16px 0;font-size:18px}
 @media(pointer:coarse),(max-width:700px){#tc{display:flex}}
 @media(max-width:700px){#arena{flex-direction:column;align-items:center}#opps{order:-1;grid-template-columns:repeat(5,1fr);min-width:0;width:100%}.oh span{display:none}.side{width:60px}.side canvas{width:56px}.lk{width:44px;height:34px;font-size:18px}}
@@ -68,7 +72,7 @@ button:active{transform:translateY(2px);box-shadow:none}button:disabled{opacity:
 
 <div id="wait" class="card hide">
  <div class="row" style="align-items:center"><div>Room <b id="wc" style="color:#ffe600;font-size:22px"></b> <button id="cp" style="padding:4px 10px;font-size:11px">Copy</button></div><div id="wm"></div><button id="wl">Leave</button></div>
- <div class="cols"><div class="col"><h3 style="color:#37d7ff">TEAM A</h3><div id="ra"></div></div><div class="col"><h3 style="color:#ff7b7b">TEAM B</h3><div id="rb"></div></div></div>
+ <div class="cols"><div class="col"><h3 id="ta" style="color:#37d7ff">TEAM A</h3><div id="ra"></div></div><div class="col" id="cb2"><h3 style="color:#ff7b7b">TEAM B</h3><div id="rb"></div></div></div>
  <div id="ws" style="font-size:13px;margin:10px 0;color:#ffd84a;text-align:center"></div>
  <button class="go hide" id="start" style="width:100%">Start Match</button>
 </div>
@@ -90,12 +94,13 @@ button:active{transform:translateY(2px);box-shadow:none}button:disabled{opacity:
  <p style="font-size:12px;margin-top:8px;text-shadow:0 1px 0 #000">←→ move · ↓ soft · ↑/X rotate · Z counter · Space hard drop · C hold</p>
 </div>
 
-<div id="res" class="hide"><h2 id="rt"></h2><div id="rsub"></div><div class="row"><button class="go hide" id="again">Rematch</button><button id="back">Return to Lobby</button></div></div>
+<div id="res" class="hide"><h2 id="rt"></h2><div id="rsub"></div><div class="row"><button class="go hide" id="again">Rematch</button><button class="hide" id="spec">Spectate</button><button id="back">Return to Lobby</button></div></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script>
-/* Existing Firebase config — unchanged. This game only reads/writes under tetrisRooms/<code>, same fields as before. */
+/* Existing Firebase config — unchanged. This game only reads/writes under tetrisRooms/<code>, same fields as before.
+   FFA mode uses the SAME schema: mode:'FFA', teamSize:10, everyone is team 'A' (teamCounts.A counts up to 10). No new paths/fields. */
 const firebaseConfig={
   apiKey:"AIzaSyCKFAwHTuPLP_eEmQy2ttFx7EzqVJkaA0k",
   authDomain:"alaw-tetris.firebaseapp.com",
@@ -106,7 +111,21 @@ const firebaseConfig={
   appId:"1:563387290486:web:3be69f9de03c55a778a057"
 };
 const $=id=>document.getElementById(id),esc=s=>String(s||'').replace(/[<>&"]/g,c=>'&#'+c.charCodeAt(0)+';'),A=v=>Array.isArray(v)?v:Object.values(v||{});
-const TS={'1v1':1,'2v2':2,'3v3':3,'4v4':4,'5v5':5};
+const TS={'1v1':1,'2v2':2,'3v3':3,'4v4':4,'5v5':5,'FFA':10};
+/* ---------- mga salita pag natalo (dagdagan mo lang dito) ---------- */
+const LOSE=[
+ 'HAHA VOVO! 🤣',
+ 'NANALO KA BA SA PAGIGING BOBO?',
+ 'MAMA MO NA LANG PAGLARUIN NATIN!',
+ 'KAHIT ANO PANG STRATEGY MO, BANO KA PA RIN!',
+ 'NAGLARO KA PARA MAGSAYA, BAKIT NAGPAKATALO KA?',
+ 'HINDI ITO LUCK ISSUE. IKAW ANG ISSUE!',
+ 'PINDOT KA NANG PINDOT, PURO KAMALASAN!',
+ 'MAY FUTURE KA NAMAN... BILANG SPECTATOR!',
+ 'IKAW ANG DAHILAN KUNG BAKIT MAY EASY MODE!',
+ "YOUR ENEMY DIDN'T WIN. YOU JUST DONATED THE VICTORY!",
+ 'HAHAHA! PWEDE KA NANG MAG-RETIRE!'
+];
 let db;try{firebase.initializeApp(firebaseConfig);db=firebase.database()}catch(e){}
 /* ---------- sound ---------- */
 let AC;function snd(f,d=.08,t='square',v=.04){try{AC=AC||new AudioContext();const o=AC.createOscillator(),g=AC.createGain();o.type=t;o.frequency.value=f;g.gain.value=v;o.connect(g);g.connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+d);o.stop(AC.currentTime+d)}catch(e){}}
@@ -168,9 +187,12 @@ const avatar=(el,n)=>{let h=0;for(const ch of String(n))h=(h*31+ch.charCodeAt(0)
 const level=()=>1+(prof.xp/150|0),RN=['ROOKIE','AMATEUR','PRO','ELITE','LEGEND'];
 /* ---------- network: existing tetrisRooms schema only ---------- */
 const myId='p_'+Math.random().toString(36).slice(2,9);
-let sel='1v1',roomId,mode='1v1',teamSize=1,myTeam,mySlot,myName='Player',hostId,roomRef,pH,sH,hH,G1,running=0,started=0,ended=0,raf,lastSync=0,players={},panels={},ready=0,last,t0,soft=0,gH;const H={dir:0,t:0};
+let sel='1v1',roomId,mode='1v1',teamSize=1,myTeam,mySlot,myName='Player',hostId,roomRef,pH,sH,hH,G1,running=0,started=0,ended=0,raf,lastSync=0,players={},panels={},ready=0,last,t0,soft=0,gH,resDone=0,lostShown=0,taunt='',rsubTxt='';const H={dir:0,t:0};
+const FFA=()=>mode==='FFA';
+/* kalaban? FFA = lahat ng iba; team mode = ibang team */
+const foe=(id,p)=>FFA()?id!==myId:p.team!==myTeam;
 const ls=t=>$('ls').textContent=t;
-$('modes').innerHTML=Object.keys(TS).map(m=>`<button class="m${m===sel?' on':''}" data-m="${m}">${m}</button>`).join('');
+$('modes').innerHTML=Object.keys(TS).map(m=>`<button class="m${m==='FFA'?' ffa':''}${m===sel?' on':''}" data-m="${m}">${m==='FFA'?'FFA 10':m}</button>`).join('');
 $('modes').onclick=e=>{const m=e.target.dataset.m;if(!m)return;sel=m;document.querySelectorAll('.m').forEach(b=>b.classList.toggle('on',b.dataset.m===m))};
 $('nm').value=prof.name||'';
 const getName=()=>{myName=($('nm').value||'Player').trim().slice(0,16)||'Player';prof.name=myName;saveProf();return myName};
@@ -179,23 +201,30 @@ $('cr').onclick=()=>{if(!need())return;getName();mode=sel;teamSize=TS[mode];room
  roomRef.set({createdAt:Date.now(),status:'waiting',mode,teamSize,hostId:myId,teamCounts:{A:1,B:0},players:{[myId]:{name:myName,team:'A',slot:1,joined:true}}}).then(()=>{roomRef.child('players/'+myId).onDisconnect().remove();enterWait()}).catch(e=>ls('Error: '+e.message))};
 $('jn').onclick=()=>{if(!need())return;const code=($('jc').value||'').trim().toUpperCase();if(!code){ls('Enter a room code.');return}getName();const ref=db.ref('tetrisRooms/'+code);
  ref.get().then(s=>{if(!s.exists()){ls('Room not found.');return}const d=s.val();if(d.status!=='waiting'){ls('That match already started.');return}
-  roomId=code;roomRef=ref;mode=d.mode||'1v1';teamSize=d.teamSize||TS[mode];hostId=d.hostId;ls('');teamChoice(d)})};
+  roomId=code;roomRef=ref;mode=d.mode||'1v1';teamSize=d.teamSize||TS[mode];hostId=d.hostId;ls('');
+  if(FFA())joinTeam('A');else teamChoice(d)})};
 function teamChoice(d){const c=d.teamCounts||{A:0,B:0},b=$('tch');b.classList.remove('hide');
  b.innerHTML=`<div style="margin-top:10px;font-size:12px">Room ${esc(roomId)} — ${esc(mode)} — choose a team</div><div class="row"><button id="pa" ${c.A>=teamSize?'disabled':''}>Team A (${c.A}/${teamSize})</button><button id="pb" ${c.B>=teamSize?'disabled':''}>Team B (${c.B}/${teamSize})</button></div>`;
  $('pa').onclick=()=>joinTeam('A');$('pb').onclick=()=>joinTeam('B')}
 function joinTeam(t){roomRef.child('teamCounts/'+t).transaction(c=>{c=c||0;if(c>=teamSize)return;return c+1}).then(r=>{
- if(!r.committed){ls('That team just filled up — try the other one.');return}
+ if(!r.committed){ls(FFA()?'Room is full (10/10).':'That team just filled up — try the other one.');return}
  myTeam=t;mySlot=r.snapshot.val();roomRef.child('players/'+myId).set({name:myName,team:t,slot:mySlot,joined:true}).then(()=>{roomRef.child('players/'+myId).onDisconnect().remove();enterWait()})})}
 function show(s){['lobby','wait','game'].forEach(k=>$(k).classList.toggle('hide',k!==s));$('game').style.display=s==='game'?'flex':'none'}
-function enterWait(){show('wait');$('tch').classList.add('hide');$('wc').textContent=roomId;$('wm').textContent=mode.toUpperCase();listen()}
+function enterWait(){show('wait');$('tch').classList.add('hide');$('wc').textContent=roomId;$('wm').textContent=FFA()?'FFA 10':mode.toUpperCase();listen()}
 function listen(){
  pH=s=>{players=s.val()||{};if(!started)roster();else{drawOpps();board2();checkEnd()}};roomRef.child('players').on('value',pH);
  hH=s=>{hostId=s.val();if(!started)roster()};roomRef.child('hostId').on('value',hH);
  sH=s=>{if(s.val()==='starting'&&!running)startMatch()};roomRef.child('status').on('value',sH);
  gH=s=>{const n=s.val();if(n>0&&G1&&running){G1.inc+=n;roomRef.child('players/'+myId+'/incomingGarbage').set(0);$('me').classList.remove('hit');void $('me').offsetWidth;$('me').classList.add('hit');snd(80,.2,'sawtooth',.08)}};roomRef.child('players/'+myId+'/incomingGarbage').on('value',gH)}
-function roster(){const a=[],b=[];Object.values(players).forEach(p=>(p.team==='A'?a:b).push(p));a.sort((x,y)=>x.slot-y.slot);b.sort((x,y)=>x.slot-y.slot);
+function roster(){const h=hostId===myId,ff=FFA(),all=Object.values(players);
+ if(ff){all.sort((x,y)=>(x.slot||0)-(y.slot||0));let o='';for(let i=0;i<teamSize;i++){const p=all[i];o+=`<div class="slot ${p?'f':''}">${p?esc(p.name):'Open'}</div>`}
+  $('ra').className='ffa';$('ra').innerHTML=o;$('cb2').classList.add('hide');$('ta').textContent=`PLAYERS (${all.length}/${teamSize}) — FREE FOR ALL`;
+  const ok=all.length>=2;$('start').classList.toggle('hide',!h);$('start').disabled=!ok;
+  $('ws').textContent=h?(ok?'Ready — start whenever you like (2 to 10 players).':'Waiting for at least 2 players…'):'Waiting for the host to start…';return}
+ $('ra').className='';$('cb2').classList.remove('hide');$('ta').textContent='TEAM A';
+ const a=[],b=[];all.forEach(p=>(p.team==='A'?a:b).push(p));a.sort((x,y)=>x.slot-y.slot);b.sort((x,y)=>x.slot-y.slot);
  const H2=(l)=>{let o='';for(let i=1;i<=teamSize;i++){const p=l.find(x=>x.slot===i);o+=`<div class="slot ${p?'f':''}">${p?esc(p.name):'Open'}</div>`}return o};
- $('ra').innerHTML=H2(a);$('rb').innerHTML=H2(b);const h=hostId===myId,ok=a.length&&b.length;$('start').classList.toggle('hide',!h);$('start').disabled=!ok;
+ $('ra').innerHTML=H2(a);$('rb').innerHTML=H2(b);const ok=a.length&&b.length;$('start').classList.toggle('hide',!h);$('start').disabled=!ok;
  $('ws').textContent=h?(ok?'Ready — start whenever you like.':'Waiting for at least 1 player on each team…'):'Waiting for the host to start…'}
 $('start').onclick=()=>{if(hostId===myId&&roomRef)roomRef.child('status').set('starting')};
 $('cp').onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText(roomId);$('cp').textContent='Copied!';setTimeout(()=>$('cp').textContent='Copy',1200)};
@@ -205,30 +234,49 @@ function cleanup(){running=0;started=0;ended=0;cancelAnimationFrame(raf);
   roomRef.child('players/'+myId).onDisconnect().cancel();roomRef.child('players/'+myId).remove();if(myTeam)roomRef.child('teamCounts/'+myTeam).transaction(c=>Math.max((c||1)-1,0))}
  roomRef=roomId=myTeam=mySlot=hostId=null;G1=null;players={};panels={};$('res').classList.add('hide');show('lobby');ls('')}
 $('wl').onclick=$('lv0').onclick=$('back').onclick=cleanup;
+$('spec').onclick=()=>$('res').classList.add('hide');
 /* ---------- match ---------- */
-function startMatch(){started=1;ended=0;running=0;ready=0;G1=new Game();show('game');$('res').classList.add('hide');
+function startMatch(){started=1;ended=0;running=0;ready=0;resDone=0;lostShown=0;G1=new Game();show('game');$('res').classList.add('hide');$('spec').classList.add('hide');
  $('mn').textContent=myName;avatar($('mav'),myName);const lv=level(),st=Math.min(5,Math.ceil(lv/2));$('mr').textContent=`RANK ${lv} (${RN[st-1]})`;$('stars').textContent='★'.repeat(st)+'☆'.repeat(5-st);$('rc').textContent=roomId;
  roomRef.child('players').get().then(s=>{players=s.val()||{};if(players[myId]){myTeam=players[myId].team;mySlot=players[myId].slot}buildOpps();ready=1});
  let n=3;fx(n);const iv=setInterval(()=>{n--;if(n>0)fx(n);else{clearInterval(iv);fx('GO!');snd(660,.2);running=1;t0=last=performance.now();push(1);raf=requestAnimationFrame(loop)}},700)}
 function fx(t){const f=$('fx');f.textContent=t;f.className='';void f.offsetWidth;f.className='s'}
-function buildOpps(){panels={};const o=Object.entries(players).filter(([i])=>i!==myId).sort((a,b)=>(a[1].team===myTeam?0:1)-(b[1].team===myTeam?0:1)||(a[1].slot||0)-(b[1].slot||0));
- $('opps').innerHTML=o.map(([i,p])=>`<div class="opp ${p.team===myTeam?'ally':''}" id="o_${i}"><div class="oh"><div class="av"></div><span>${esc(p.name)}</span></div><canvas width="100" height="200"></canvas><div class="sc">0</div></div>`).join('');
+function buildOpps(){panels={};const o=Object.entries(players).filter(([i])=>i!==myId).sort((a,b)=>(!FFA()&&a[1].team===myTeam?0:1)-(!FFA()&&b[1].team===myTeam?0:1)||(a[1].slot||0)-(b[1].slot||0));
+ $('opps').innerHTML=o.map(([i,p])=>`<div class="opp ${!FFA()&&p.team===myTeam?'ally':''}" id="o_${i}"><div class="oh"><div class="av"></div><span>${esc(p.name)}</span></div><canvas width="100" height="200"></canvas><div class="sc">0</div></div>`).join('');
  o.forEach(([i,p])=>{const e=$('o_'+i);avatar(e.querySelector('.av'),p.name);panels[i]=e.querySelector('canvas').getContext('2d')})}
 function drawOpps(){for(const i in panels){const d=players[i];if(!d)continue;const rows=d.board?A(d.board).map(r=>String(r).split(',').map(c=>c==='0'?'':c)):[];
  let pc=null;if(d.cur&&d.cur.m){const cells=[];A(d.cur.m).forEach((row,y)=>A(row).forEach((v,x)=>{if(v)cells.push([x,y])}));pc={cells,col:d.cur.color,x:d.cur.x,y:d.cur.y}}
  paint(panels[i],rows,10,pc);const o=$('o_'+i);o.querySelector('.sc').textContent=d.score||0;o.classList.toggle('out',!!d.gameOver)}}
 function board2(){}
-function checkEnd(){if(ended||!running||!ready)return;let aA=0,aB=0;Object.values(players).forEach(p=>{if(!p.gameOver)p.team==='A'?aA++:aB++});if(G1&&G1.dead){/* own flag may lag */}
+/* result screen: random "haha vovo" salita pag talo */
+function result(win,final){
+ if(!resDone){resDone=1;
+  const pool=LOSE.slice();if(teamSize>1&&!FFA())pool[0]='HAHA VOVO TEAM! 🤣';
+  taunt=pool[Math.random()*pool.length|0];
+  const xp=(win?60:20)+(G1?G1.ln*2:0);prof.xp+=xp;win?prof.w++:prof.l++;saveProf();
+  rsubTxt=`+${xp} XP · Lv ${level()} · ${prof.w}W/${prof.l}L (this device)`;
+  snd(win?880:120,.5,win?'triangle':'sawtooth',.08)}
+ const t=win?'YOU WIN!':taunt;$('rt').textContent=t;$('rt').classList.toggle('long',t.length>22);
+ let sub=rsubTxt;
+ if(final){$('again').classList.toggle('hide',hostId!==myId);$('spec').classList.add('hide');if(hostId!==myId)sub+=' — waiting for host to rematch'}
+ else{$('again').classList.add('hide');$('spec').classList.remove('hide');sub+=' — pwede ka pang manood (Spectate)'}
+ $('rsub').textContent=sub;$('res').classList.remove('hide')}
+function checkEnd(){if(ended||!running||!ready)return;
+ if(FFA()){
+  const alive=Object.entries(players).filter(([i,p])=>i!==myId&&!p.gameOver).length+(G1&&!G1.dead?1:0);
+  if(G1&&G1.dead&&!lostShown){lostShown=1;result(false,0)}
+  if(alive>1)return;
+  ended=1;running=0;cancelAnimationFrame(raf);roomRef.child('status').set('ended');
+  result(!(G1&&G1.dead),1);return}
+ let aA=0,aB=0;Object.values(players).forEach(p=>{if(!p.gameOver)p.team==='A'?aA++:aB++});
  const aD=aA===0,bD=aB===0;if(!aD&&!bD)return;ended=1;running=0;cancelAnimationFrame(raf);roomRef.child('status').set('ended');
- const myDown=myTeam==='A'?aD:bD,win=!myDown&&!(aD&&bD),team=teamSize>1;
- $('rt').textContent=win?'YOU WIN!':(team?'HAHA VOVO TEAM! 🤣':'HAHA VOVO! 🤣');
- const xp=(win?60:20)+(G1?G1.ln*2:0);prof.xp+=xp;win?prof.w++:prof.l++;saveProf();$('rsub').textContent=`+${xp} XP · Lv ${level()} · ${prof.w}W/${prof.l}L (this device)`;
- snd(win?880:120,.5,win?'triangle':'sawtooth',.08);$('again').classList.toggle('hide',hostId!==myId);if(hostId!==myId)$('rsub').textContent+=' — waiting for host to rematch';$('res').classList.remove('hide')}
+ const myDown=myTeam==='A'?aD:bD,win=!myDown&&!(aD&&bD);
+ result(win,1)}
 $('again').onclick=()=>{$('again').classList.add('hide');if(hostId!==myId||!roomRef)return;roomRef.child('players').get().then(s=>{const p=s.val()||{},u={};Object.keys(p).forEach(i=>{u['players/'+i+'/gameOver']=false;u['players/'+i+'/score']=0;u['players/'+i+'/lines']=0;u['players/'+i+'/incomingGarbage']=0});u.status='starting';roomRef.update(u)})};
 function push(f){const n=performance.now();if(!roomRef||!G1||(!f&&n-lastSync<80))return;lastSync=n;const g=G1,p=g.p;
  roomRef.child('players/'+myId).update({board:g.b.map(w=>w.map(c=>c?(COL[c]||c):'0').join(',')),cur:{m:mat(p.t,p.r),color:COL[p.t],x:p.x,y:p.y},score:g.sc,lines:g.ln,gameOver:!!g.dead,name:myName,team:myTeam,slot:mySlot})}
 function done(a){const g=G1;if(g.m)fx(g.m);if(a>0)send(a);push(1);if(g.dead){fx('K.O.');snd(100,.5,'sawtooth',.08)}}
-function send(n){const o=Object.entries(players).filter(([i,p])=>p.team!==myTeam&&!p.gameOver);if(!o.length)return;const id=o[Math.random()*o.length|0][0];
+function send(n){const o=Object.entries(players).filter(([i,p])=>foe(i,p)&&!p.gameOver);if(!o.length)return;const id=o[Math.random()*o.length|0][0];
  roomRef.child('players/'+id+'/incomingGarbage').transaction(c=>(c||0)+n);atk(id,n)}
 function atk(id,n){const a=$('bw').getBoundingClientRect(),o=$('o_'+id),b=(o||$('bw')).getBoundingClientRect();
  for(let i=0;i<4;i++){const d=document.createElement('div');d.className='dm';d.style.left=a.right+'px';d.style.top=a.top+a.height/3+'px';document.body.appendChild(d);
