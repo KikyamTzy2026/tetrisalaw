@@ -135,12 +135,14 @@ const SH={};for(const t in P){const[n,c]=P[t];SH[t]=[c];for(let r=1;r<4;r++)SH[t
 const KJ={'01':'0,0 -1,0 -1,1 0,-2 -1,-2','10':'0,0 1,0 1,-1 0,2 1,2','12':'0,0 1,0 1,-1 0,2 1,2','21':'0,0 -1,0 -1,1 0,-2 -1,-2','23':'0,0 1,0 1,1 0,-2 1,-2','32':'0,0 -1,0 -1,-1 0,2 -1,2','30':'0,0 -1,0 -1,-1 0,2 -1,2','03':'0,0 1,0 1,1 0,-2 1,-2'};
 const KI={'01':'0,0 -2,0 1,0 -2,-1 1,2','10':'0,0 2,0 -1,0 2,1 -1,-2','12':'0,0 -1,0 2,0 -1,2 2,-1','21':'0,0 1,0 -2,0 1,-2 -2,1','23':'0,0 2,0 -1,0 2,1 -1,-2','32':'0,0 -2,0 1,0 -2,-1 1,2','30':'0,0 1,0 -2,0 1,-2 -2,1','03':'0,0 -1,0 2,0 -1,2 2,-1'};
 const CB=[0,0,1,1,2,2,3,3,4,4,4,5];
+/* cheat state (F4 menu) */
+const CHEAT={open:0,hint:1,auto:0,speed:1,slow:0,hold:0,shield:0,plan:null,pid:-1,gref:null,acc:0,stuck:0,sig:''};
 class Game{
  constructor(){this.b=Array.from({length:20},()=>Array(10).fill(''));this.q=[];this.hold='';this.can=1;this.sc=0;this.ln=0;this.cb=-1;this.b2=0;this.inc=0;this.dead=0;this.m='';this.spawn()}
  get lv(){return this.ln/10|0}
- g(){return Math.max(60,800*Math.pow(.85,this.lv))}
+ g(){const v=Math.max(60,800*Math.pow(.85,this.lv));return CHEAT.slow?v*3:v}
  bag(){while(this.q.length<7){const a=[...'IOTSZJL'];for(let i=6;i;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}this.q.push(...a)}}
- spawn(t){this.bag();t=t||this.q.shift();this.bag();this.p={t,r:0,x:3,y:0};this.tsp=0;this.gt=0;this.rs=0;this.acc=0;if(this.hit(t,0,3,0))this.dead=1}
+ spawn(t){this.pid=(this.pid||0)+1;this.bag();t=t||this.q.shift();this.bag();this.p={t,r:0,x:3,y:0};this.tsp=0;this.gt=0;this.rs=0;this.acc=0;if(this.hit(t,0,3,0))this.dead=1}
  hit(t,r,x,y){return SH[t][r].some(([a,c])=>{const X=x+a,Y=y+c;return X<0||X>9||Y>19||(Y>=0&&this.b[Y][X])})}
  reset(){if(this.rs++<15)this.gt=0}
  go(d){const p=this.p;if(!this.hit(p.t,p.r,p.x+d,p.y)){p.x+=d;this.tsp=0;this.reset();snd(200,.03)}}
@@ -148,7 +150,7 @@ class Game{
  down(){const p=this.p;if(!this.hit(p.t,p.r,p.x,p.y+1)){p.y++;this.tsp=0;return 1}}
  gy(){const p=this.p;let y=p.y;while(!this.hit(p.t,p.r,p.x,y+1))y++;return y}
  hard(){const y=this.gy();this.sc+=(y-this.p.y)*2;this.p.y=y;return this.lock()}
- holdP(){if(!this.can)return;const h=this.hold;this.hold=this.p.t;this.spawn(h||undefined);this.can=0;snd(260,.05)}
+ holdP(){if(!this.can&&!CHEAT.hold)return;const h=this.hold;this.hold=this.p.t;this.spawn(h||undefined);this.can=0;snd(260,.05)}
  update(dt,soft){const g=soft?Math.min(40,this.g()):this.g(),p=this.p;this.acc+=dt;
   while(this.acc>=g){this.acc-=g;if(this.down()){if(soft)this.sc++}else{this.acc=0;break}}
   if(this.hit(p.t,p.r,p.x,p.y+1)){this.gt+=dt;if(this.gt>500)return this.lock()}else this.gt=0;return null}
@@ -215,7 +217,7 @@ function listen(){
  pH=s=>{players=s.val()||{};if(!started)roster();else{drawOpps();board2();checkEnd()}};roomRef.child('players').on('value',pH);
  hH=s=>{hostId=s.val();if(!started)roster()};roomRef.child('hostId').on('value',hH);
  sH=s=>{if(s.val()==='starting'&&!running)startMatch()};roomRef.child('status').on('value',sH);
- gH=s=>{const n=s.val();if(n>0&&G1&&running){G1.inc+=n;roomRef.child('players/'+myId+'/incomingGarbage').set(0);$('me').classList.remove('hit');void $('me').offsetWidth;$('me').classList.add('hit');snd(80,.2,'sawtooth',.08)}};roomRef.child('players/'+myId+'/incomingGarbage').on('value',gH)}
+ gH=s=>{const n=s.val();if(n>0&&G1&&running){if(!CHEAT.shield)G1.inc+=n;roomRef.child('players/'+myId+'/incomingGarbage').set(0);$('me').classList.remove('hit');void $('me').offsetWidth;$('me').classList.add('hit');snd(80,.2,'sawtooth',.08)}};roomRef.child('players/'+myId+'/incomingGarbage').on('value',gH)}
 function roster(){const h=hostId===myId,ff=FFA(),all=Object.values(players);
  if(ff){all.sort((x,y)=>(x.slot||0)-(y.slot||0));let o='';for(let i=0;i<teamSize;i++){const p=all[i];o+=`<div class="slot ${p?'f':''}">${p?esc(p.name):'Open'}</div>`}
   $('ra').className='ffa';$('ra').innerHTML=o;$('cb2').classList.add('hide');$('ta').textContent=`PLAYERS (${all.length}/${teamSize}) — FREE FOR ALL`;
@@ -285,7 +287,7 @@ function atk(id,n){const a=$('bw').getBoundingClientRect(),o=$('o_'+id),b=(o||$(
 const bc=$('bc').getContext('2d'),hc=$('hc').getContext('2d'),nc=$('nc').getContext('2d');
 function loop(now){if(!running)return;raf=requestAnimationFrame(loop);const g=G1,dt=Math.min(now-last,50);last=now;
  if(!g.dead){if(H.dir&&now>=H.t){g.go(H.dir);H.t=now+40}const a=g.update(dt,soft);if(a!=null)done(a)}
- paint(bc,g.b,28,g.dead?null:pcOf(g.p),g.dead?null:g.gy());
+ paint(bc,g.b,28,g.dead?null:pcOf(g.p),g.dead?null:g.gy());cheatTick(now,g);
  hc.fillStyle='#0c0e14';hc.fillRect(0,0,76,60);prev(hc,g.hold,38,30,14);
  nc.fillStyle='#0c0e14';nc.fillRect(0,0,76,310);g.q.slice(0,5).forEach((t,i)=>prev(nc,t,38,36+i*60,14));
  $('sc').textContent=g.sc;$('ln').textContent=g.ln;$('gbf').style.height=Math.min(g.inc,20)*5+'%';
@@ -302,6 +304,67 @@ addEventListener('keydown',e=>{const a=KM[e.code];if(a&&running){e.preventDefaul
 addEventListener('keyup',e=>{const a=KM[e.code];if(a)press(a,0)});
 $('tc').addEventListener('pointerdown',e=>{const a=e.target.dataset.a;if(a){e.preventDefault();press(a,1)}});
 ['pointerup','pointercancel','pointerleave'].forEach(v=>$('tc').addEventListener(v,e=>{const a=e.target.dataset&&e.target.dataset.a;if(a)press(a,0)}));
+/* ---------- CHEAT MENU (F4) — local lang, walang sinusulat sa Firebase ---------- */
+/* CHEAT-BOT-START */
+const BOT_MS=[25,70,180];
+const bGrid=g=>g.b.map(r=>r.map(c=>c?1:0));
+function bDrop(grid,t,r,x){
+ const cs=SH[t][r],hit=y=>cs.some(([a,c])=>{const X=x+a,Y=y+c;return X<0||X>9||Y>19||(Y>=0&&grid[Y][X])});
+ if(hit(0))return null;let y=0;while(!hit(y+1))y++;
+ const ng=grid.map(w=>w.slice());for(const[a,c]of cs){if(y+c<0)return null;ng[y+c][x+a]=1}
+ let n=0;const keep=ng.filter(w=>{if(w.every(v=>v)){n++;return 0}return 1});while(keep.length<20)keep.unshift(Array(10).fill(0));
+ return{g:keep,n,y}}
+function bEval(grid,n){
+ let agg=0,holes=0,bump=0;const hs=[];
+ for(let x=0;x<10;x++){let h=0,seen=0;for(let y=0;y<20;y++){if(grid[y][x]){if(!h)h=20-y;seen=1}else if(seen)holes++}hs.push(h);agg+=h}
+ for(let x=0;x<9;x++)bump+=Math.abs(hs[x]-hs[x+1]);const mx=Math.max(...hs);
+ return -0.51*agg+0.76*n-0.36*holes-0.18*bump+(n===4?3:0)-(mx>14?(mx-14)*2:0)}
+function bBest(grid,t,nt){let best=null;
+ for(let r=0;r<4;r++)for(let x=-2;x<10;x++){const d=bDrop(grid,t,r,x);if(!d)continue;
+  let s=bEval(d.g,d.n);if(nt){const n2=bBest(d.g,nt,null);s=n2?s+n2.s:-1e9}
+  if(!best||s>best.s)best={s,r,x,y:d.y}}
+ return best}
+function bPlan(g){const grid=bGrid(g),p=g.p,q=g.q,a=bBest(grid,p.t,q[0]);let res=a?{...a,t:p.t,hold:0}:null;
+ if(g.can){const alt=g.hold||q[0],nx=g.hold?q[0]:q[1];if(alt){const b=bBest(grid,alt,nx);if(b&&(!res||b.s>res.s+.5))res={...b,t:alt,hold:1}}}
+ return res}
+function botStep(g){const pl=CHEAT.plan,p=g.p;if(!pl)return;
+ if(pl.hold&&g.can){g.holdP();return}
+ const dr=(pl.r-p.r+4)%4,sig=p.r+','+p.x;
+ if(sig===CHEAT.sig){if(++CHEAT.stuck>=8){done(g.hard());return}}else{CHEAT.sig=sig;CHEAT.stuck=0}
+ if(dr){g.rot(dr===3?-1:1);return}
+ if(p.x<pl.x){g.go(1);return}
+ if(p.x>pl.x){g.go(-1);return}
+ done(g.hard())}
+/* CHEAT-BOT-END */
+function drawHint(){const pl=CHEAT.plan;if(!pl)return;const s=28;bc.save();bc.lineWidth=3;
+ bc.strokeStyle=pl.hold?'#22d3ee':'#4ade80';bc.fillStyle=pl.hold?'rgba(34,211,238,.25)':'rgba(74,222,128,.25)';
+ for(const[a,c]of SH[pl.t][pl.r]){const X=(pl.x+a)*s,Y=(pl.y+c)*s;bc.fillRect(X,Y,s,s);bc.strokeRect(X+2,Y+2,s-4,s-4)}
+ if(pl.hold){bc.font='bold 15px Arial';bc.fillStyle='#22d3ee';bc.fillText('HOLD (C) muna',8,20)}bc.restore()}
+function cheatTick(now,g){
+ if(g.dead||!(CHEAT.auto||(CHEAT.hint&&CHEAT.open)))return;
+ if(CHEAT.gref!==g||CHEAT.pid!==g.pid){CHEAT.gref=g;CHEAT.pid=g.pid;CHEAT.plan=bPlan(g);CHEAT.stuck=0;CHEAT.sig='';cheatInfo()}
+ if(CHEAT.hint&&CHEAT.open)drawHint();
+ if(CHEAT.auto&&now-CHEAT.acc>=BOT_MS[CHEAT.speed]){CHEAT.acc=now;botStep(g)}}
+(()=>{
+ const st=document.createElement('style');st.textContent=`#chp{position:fixed;top:10px;right:10px;z-index:999;width:250px;background:rgba(12,14,20,.96);border:2px solid #4ade80;border-radius:12px;padding:12px;color:#eee;font:13px 'Trebuchet MS',Arial;box-shadow:0 8px 30px #000a}#chp .t{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}#chp .t b{color:#4ade80;font-size:15px}#chp .t small{color:#8a90a3}#chp button{width:100%;margin:3px 0;padding:8px 10px;text-align:left;box-shadow:none;background:#2a2f40}#chp button.on{background:#16a34a}#chi{background:#1c2030;border-radius:8px;padding:8px;margin:8px 0;font-size:12px;min-height:44px;line-height:1.4}#chb{position:fixed;left:10px;bottom:10px;z-index:999;width:42px;height:42px;border-radius:50%;padding:0;font-size:20px;opacity:.6}`;document.head.appendChild(st);
+ const pn=document.createElement('div');pn.id='chp';pn.className='hide';
+ pn.innerHTML=`<div class="t"><b>🎮 Cheat Menu</b><small>F4 isara</small></div><button id="c_hint"></button><button id="c_auto"></button><button id="c_spd"></button><button id="c_slow"></button><button id="c_hold"></button><button id="c_shield"></button><div id="chi">Hintayin ang match…</div><small>Local lang ito — walang binabago sa database.</small>`;
+ document.body.appendChild(pn);
+ const bt=document.createElement('button');bt.id='chb';bt.textContent='🎮';bt.title='Cheat menu (F4)';document.body.appendChild(bt);
+ const SPD=['Mabilis','Normal','Mabagal (parang tao)'];
+ const rdr=()=>{const f=(id,l,v)=>{const e=document.getElementById(id);e.textContent=l+(v==null?'':': '+(v?'ON':'OFF'));e.classList.toggle('on',!!v)};
+  f('c_hint','👁 Best move hint',CHEAT.hint);f('c_auto','🤖 Auto-play (bot)',CHEAT.auto);
+  const s=document.getElementById('c_spd');s.textContent='⏱ Bot speed: '+SPD[CHEAT.speed];
+  f('c_slow','🐌 Slow fall',CHEAT.slow);f('c_hold','♻ Infinite hold',CHEAT.hold);f('c_shield','🛡 Garbage shield',CHEAT.shield)};
+ window.cheatInfo=()=>{const e=document.getElementById('chi'),pl=CHEAT.plan;if(!pl){e.textContent='Walang suggestion ngayon.';return}
+  const cols=SH[pl.t][pl.r].map(([a])=>pl.x+a+1),L=Math.min(...cols),R=Math.max(...cols);
+  e.innerHTML=`Best: <b style="color:#4ade80">${pl.t}</b> · rotate ${pl.r}× · column ${L===R?L:L+'–'+R}${pl.hold?'<br><b style="color:#22d3ee">HOLD (C) muna!</b>':''}`};
+ const tog=()=>{CHEAT.open=!CHEAT.open;pn.classList.toggle('hide',!CHEAT.open);rdr();if(CHEAT.open)cheatInfo()};
+ pn.onmousedown=e=>e.preventDefault();bt.onmousedown=e=>e.preventDefault();bt.onclick=tog;
+ pn.onclick=e=>{const id=e.target.id;if(id==='c_hint')CHEAT.hint^=1;else if(id==='c_auto')CHEAT.auto^=1;else if(id==='c_spd')CHEAT.speed=(CHEAT.speed+1)%3;
+  else if(id==='c_slow')CHEAT.slow^=1;else if(id==='c_hold')CHEAT.hold^=1;else if(id==='c_shield')CHEAT.shield^=1;rdr()};
+ addEventListener('keydown',e=>{if(e.code==='F4'){e.preventDefault();tog()}});
+ rdr()})();
 (()=>{const b=document.createElement('div');b.id='bgfx';const S=44,C=['#ef4444','#3b82f6','#facc15','#22c55e','#a78bfa','#f97316','#22d3ee','#f472b6'];
 for(let x=0;x<Math.ceil(screen.width/S)+1;x++){const h=1+(Math.random()*3|0);for(let y=0;y<h;y++){const c=document.createElement('i');c.style.cssText=`left:${x*S}px;bottom:${74+y*S}px;background:radial-gradient(circle at 30% 25%,#fff9 0,#fff0 40%),${C[Math.random()*8|0]}`;b.appendChild(c)}}document.body.prepend(b)})();
 </script></body></html>
